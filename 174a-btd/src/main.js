@@ -525,7 +525,7 @@ function animate() {
 
 animate();
 
-// Optional: basic cleanup on HMR (not required for assignment)
+// vite HMR
 if (import.meta.hot) {
     import.meta.hot.dispose(() => {
         cancelAnimationFrame(animationId);
