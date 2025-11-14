@@ -1,18 +1,40 @@
-# React + Vite
+# Bloon Towers Defense Training Camp
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A 3D first-person shooter (FPS) physics-based aim trainer built with Three.js and vanilla JavaScript.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **FPS Controls**: WASD movement + mouse look with pointer lock
+- **Physics Simulation**: Projectiles and balloons follow kinematic equations with gravity
+- **Collision Detection**: Bounding sphere collision system
+- **Shadow Mapping**: Realistic shadows cast by objects
+- **3D Environment**: Procedurally generated balloons with Phong shading
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+- **Three.js** - 3D graphics library
+- **Vite** - Build tool and dev server
+- **Vanilla JavaScript** - No frameworks, pure JS
 
-Note: This will impact Vite dev & build performances.
+## Getting Started
 
-## Expanding the ESLint configuration
+```bash
+# Install dependencies
+npm install
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+# Start dev server
+npm run dev
+
+# Build for production
+npm run build
+```
+
+## Controls
+
+- **Click** - Lock mouse pointer (first click) / Shoot projectile (subsequent clicks)
+- **WASD** - Move around
+- **Mouse** - Look around (when pointer is locked)
+
+## Gameplay
+
+Shoot projectiles at moving balloons that follow parabolic trajectories. Score points by hitting balloons before they fly away!
