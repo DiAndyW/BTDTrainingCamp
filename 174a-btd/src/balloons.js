@@ -4,10 +4,12 @@ import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 
 const balloons = [];
 const objLoader = new OBJLoader();
+let onBalloonEscape = null;
+let onBalloonSpawn = null;
 
 // Balloon body material
 const balloonMaterial = new THREE.MeshPhongMaterial({
-    color: 0xff0000,  // Red/pink balloon
+    color: 0xff0000,
     shininess: 80,
     specular: 0x222222,
     flatShading: false,
@@ -15,7 +17,7 @@ const balloonMaterial = new THREE.MeshPhongMaterial({
 
 // String material
 const stringMaterial = new THREE.MeshPhongMaterial({
-    color: 0xffffff,  // White string
+    color: 0xffffff,
     shininess: 30,
 });
 
@@ -27,13 +29,17 @@ function createBalloonMesh(callback) {
     objLoader.load(
         '../models/balloon.obj',
         function (balloonObject) {
-            // Apply transformations
+
             balloonObject.scale.set(0.8, 0.8, 0.8);
 
-            // Apply balloon material
             balloonObject.traverse((child) => {
                 if (child.isMesh) {
-                    child.geometry.computeVertexNormals();
+                    // Fix: center geometry so hitbox matches balloon
+                    child.geometry.computeBoundingBox();
+                    const center = new THREE.Vector3();
+                    child.geometry.boundingBox.getCenter(center);
+                    child.geometry.translate(-center.x, -center.y, -center.z);
+
                     child.material = balloonMaterial;
                     child.castShadow = true;
                     child.receiveShadow = true;
@@ -43,12 +49,6 @@ function createBalloonMesh(callback) {
             group.add(balloonObject);
             loadedCount++;
             if (loadedCount === 2) callback(group);
-        },
-        function (xhr) {
-            console.log(`Balloon body: ${(xhr.loaded / xhr.total * 100)}% loaded`);
-        },
-        function (error) {
-            console.error('Error loading balloon:', error);
         }
     );
 
@@ -56,14 +56,13 @@ function createBalloonMesh(callback) {
     objLoader.load(
         '../models/string.obj',
         function (stringObject) {
-            // Apply transformations
+
             stringObject.scale.set(0.7, 0.7, 0.7);
+            stringObject.scale.y = 1.2; // Stretch string vertically
 
-            // Position the string below the balloon
-            // Adjust these values to align the string properly
-            stringObject.position.set(-0.8, -0.6, 2.4);
+            // After centering balloon, string must be repositioned
+            stringObject.position.set(0, -2, 0);
 
-            // Apply string material
             stringObject.traverse((child) => {
                 if (child.isMesh) {
                     child.geometry.computeVertexNormals();
@@ -76,54 +75,61 @@ function createBalloonMesh(callback) {
             group.add(stringObject);
             loadedCount++;
             if (loadedCount === 2) callback(group);
-        },
-        function (xhr) {
-            console.log(`String: ${(xhr.loaded / xhr.total * 100)}% loaded`);
-        },
-        function (error) {
-            console.error('Error loading string:', error);
         }
     );
 }
 
 export function spawnBalloon(scene, startY = null) {
-    createBalloonMesh((balloonMesh) => {
-        // Random starting height if not specified
-        const yPos = startY !== null ? startY : 0.5 + Math.random() * 4;
-        balloonMesh.position.set(-5, yPos, -10);
-        scene.add(balloonMesh);
+    const yPos = startY !== null ? startY : 0.5 + Math.random() * 4;
 
-        // More horizontal velocity, less vertical for floating effect
-        const velocity = new THREE.Vector3(1.5, 0.1, 0);
+    // Show spawn warning UI
+    if (onBalloonSpawn) {
+        onBalloonSpawn(15, 50); // 15% left, 50% height
+    }
 
-        balloons.push({
-            mesh: balloonMesh,
-            velocity,
-            radius: 1.3, // Increased collision radius for bigger balloon
-            time: Math.random() * Math.PI * 2, // Random phase for arc motion
+    // Spawn after warning delay
+    setTimeout(() => {
+        createBalloonMesh((balloonMesh) => {
+            // Start off-screen left
+            balloonMesh.position.set(-5, yPos, -10);
+            scene.add(balloonMesh);
+
+            // Movement
+            const velocity = new THREE.Vector3(1.5, 0.1, 0);
+
+            balloons.push({
+                mesh: balloonMesh,
+                velocity,
+                radius: 1.3,
+                time: Math.random() * Math.PI * 2
+            });
         });
-    });
+    }, 1500);
 }
 
 export function updateBalloons(scene, dt, gravity) {
-    const tmpB = new THREE.Vector3();
-
     for (let i = balloons.length - 1; i >= 0; i--) {
         const b = balloons[i];
 
-        // Increment time for arc motion
+        // Floating motion
         b.time += dt * 0.8;
+        const arcOffset = Math.sin(b.time) * 0.3;
 
-        // Apply reduced gravity for floating effect
+        // Light gravity
         b.velocity.addScaledVector(gravity, dt * 0.05);
 
-        // Add sine wave for arc/floating motion
-        const arcOffset = Math.sin(b.time) * 0.3;
+        // Apply movement
         b.mesh.position.x += b.velocity.x * dt;
         b.mesh.position.y += (b.velocity.y + arcOffset) * dt;
         b.mesh.position.z += b.velocity.z * dt;
 
-        if (b.mesh.position.y < -2 || b.mesh.position.lengthSq() > 10000) {
+        const x = b.mesh.position.x;
+        const y = b.mesh.position.y;
+
+        // remove life if ballon escapes past the floor
+        if (y < -2) {
+            if (onBalloonEscape) onBalloonEscape();
+
             scene.remove(b.mesh);
             b.mesh.traverse((child) => {
                 if (child.isMesh) {
@@ -132,12 +138,12 @@ export function updateBalloons(scene, dt, gravity) {
                 }
             });
             balloons.splice(i, 1);
-            // Always keep at least one balloon
+
+            // Keep balloons flowing
             spawnBalloon(scene);
+            continue;
         }
     }
-
-    return tmpB;
 }
 
 export function getBalloons() {
@@ -147,11 +153,18 @@ export function getBalloons() {
 export function removeBalloon(scene, index) {
     const b = balloons[index];
     scene.remove(b.mesh);
+
     b.mesh.traverse((child) => {
         if (child.isMesh) {
             child.geometry.dispose();
             child.material.dispose();
         }
     });
+
     balloons.splice(index, 1);
+}
+
+export function setCallbacks(escapeCallback, spawnCallback) {
+    onBalloonEscape = escapeCallback;
+    onBalloonSpawn = spawnCallback;
 }
