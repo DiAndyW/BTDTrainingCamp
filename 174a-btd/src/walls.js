@@ -3,7 +3,7 @@ import * as THREE from 'three';
 
 export function initWalls(scene) {
     const wallMaterial = new THREE.MeshPhongMaterial({
-        color: 0x8B4513,
+        color: 0xb1bdb7,
         side: THREE.DoubleSide
     });
     const wallHeight = 3;

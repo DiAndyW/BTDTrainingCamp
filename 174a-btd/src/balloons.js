@@ -1,42 +1,103 @@
 // balloons.js - Balloon creation and management
 import * as THREE from 'three';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 
 const balloons = [];
+const objLoader = new OBJLoader();
 
-function createBalloonMesh() {
+// Balloon body material
+const balloonMaterial = new THREE.MeshPhongMaterial({
+    color: 0x2f52d4,  // Red/pink balloon
+    shininess: 80,
+    specular: 0x222222,
+    flatShading: false,
+});
+
+// String material
+const stringMaterial = new THREE.MeshPhongMaterial({
+    color: 0xffffff,  // White string
+    shininess: 30,
+});
+
+function createBalloonMesh(callback) {
     const group = new THREE.Group();
+    let loadedCount = 0;
 
-    const bodyGeom = new THREE.SphereGeometry(0.5, 32, 32);
-    const bodyMat = new THREE.MeshPhongMaterial({
-        color: 0x55aaff,
-        shininess: 80,
-        specular: 0x222222,
-    });
-    const body = new THREE.Mesh(bodyGeom, bodyMat);
-    body.castShadow = true;
-    group.add(body);
+    // Load balloon body
+    objLoader.load(
+        '../models/balloon.obj',
+        function (balloonObject) {
+            // Apply transformations
+            balloonObject.scale.set(0.5, 0.5, 0.5);
 
-    const stringGeom = new THREE.CylinderGeometry(0.03, 0.03, 0.9);
-    const stringMat = new THREE.MeshPhongMaterial({ color: 0xffffff });
-    const string = new THREE.Mesh(stringGeom, stringMat);
-    string.position.y = -0.75;
-    string.castShadow = true;
-    group.add(string);
+            // Apply balloon material
+            balloonObject.traverse((child) => {
+                if (child.isMesh) {
+                    child.geometry.computeVertexNormals();
+                    child.material = balloonMaterial;
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
 
-    return group;
+            group.add(balloonObject);
+            loadedCount++;
+            if (loadedCount === 2) callback(group);
+        },
+        function (xhr) {
+            console.log(`Balloon body: ${(xhr.loaded / xhr.total * 100)}% loaded`);
+        },
+        function (error) {
+            console.error('Error loading balloon:', error);
+        }
+    );
+
+    // Load string
+    objLoader.load(
+        '../models/string.obj',
+        function (stringObject) {
+            // Apply transformations
+            stringObject.scale.set(0.5, 0.5, 0.5);
+
+            // Position the string below the balloon
+            // Adjust these values to align the string properly
+            stringObject.position.set(-0.5, -0.4, 1.5);
+
+            // Apply string material
+            stringObject.traverse((child) => {
+                if (child.isMesh) {
+                    child.geometry.computeVertexNormals();
+                    child.material = stringMaterial;
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+
+            group.add(stringObject);
+            loadedCount++;
+            if (loadedCount === 2) callback(group);
+        },
+        function (xhr) {
+            console.log(`String: ${(xhr.loaded / xhr.total * 100)}% loaded`);
+        },
+        function (error) {
+            console.error('Error loading string:', error);
+        }
+    );
 }
 
 export function spawnBalloon(scene) {
-    const balloonMesh = createBalloonMesh();
-    balloonMesh.position.set(-5, 2, -10);
-    scene.add(balloonMesh);
+    createBalloonMesh((balloonMesh) => {
+        balloonMesh.position.set(-5, 2, -10);
+        scene.add(balloonMesh);
 
-    const velocity = new THREE.Vector3(6, 6, 0);
+        const velocity = new THREE.Vector3(6, 6, 0);
 
-    balloons.push({
-        mesh: balloonMesh,
-        velocity,
-        radius: 0.5,
+        balloons.push({
+            mesh: balloonMesh,
+            velocity,
+            radius: 0.5,
+        });
     });
 }
 
