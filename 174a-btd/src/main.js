@@ -85,7 +85,8 @@ function animate() {
         // Correct working collision
         for (let i = balloons.length - 1; i >= 0; i--) {
             const b = balloons[i];
-            b.mesh.getWorldPosition(tmpB);
+            // Use balloon object position instead of full group (excludes string)
+            b.balloonObject.getWorldPosition(tmpB);
 
             // Balloon radius fallback
             let bRadius = b.radius;

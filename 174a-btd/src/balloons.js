@@ -9,7 +9,7 @@ let onBalloonSpawn = null;
 
 // Balloon body material
 const balloonMaterial = new THREE.MeshStandardMaterial({
-    color: 0xff0000,
+    color: 0x00ff00,
     roughness: 0.3,
     metalness: 0.1,
     flatShading: false,
@@ -24,6 +24,7 @@ const stringMaterial = new THREE.MeshPhongMaterial({
 function createBalloonMesh(callback) {
     const group = new THREE.Group();
     let loadedCount = 0;
+    let balloonObjectRef = null;
 
     // Load balloon body
     objLoader.load(
@@ -47,8 +48,9 @@ function createBalloonMesh(callback) {
             });
 
             group.add(balloonObject);
+            balloonObjectRef = balloonObject;
             loadedCount++;
-            if (loadedCount === 2) callback(group);
+            if (loadedCount === 2) callback(group, balloonObjectRef);
         }
     );
 
@@ -74,7 +76,7 @@ function createBalloonMesh(callback) {
 
             group.add(stringObject);
             loadedCount++;
-            if (loadedCount === 2) callback(group);
+            if (loadedCount === 2) callback(group, balloonObjectRef);
         }
     );
 }
@@ -89,7 +91,7 @@ export function spawnBalloon(scene, startY = null) {
 
     // Spawn after warning delay
     setTimeout(() => {
-        createBalloonMesh((balloonMesh) => {
+        createBalloonMesh((balloonMesh, balloonObject) => {
             // Start off-screen left
             balloonMesh.position.set(-5, yPos, -10);
             scene.add(balloonMesh);
@@ -99,6 +101,7 @@ export function spawnBalloon(scene, startY = null) {
 
             balloons.push({
                 mesh: balloonMesh,
+                balloonObject: balloonObject, // Store reference to just the balloon part
                 velocity,
                 radius: 1.3,
                 time: Math.random() * Math.PI * 2
