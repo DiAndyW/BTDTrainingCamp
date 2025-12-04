@@ -372,18 +372,20 @@ export function initUI(container) {
 
     function showLifeLostWarning() {
         const warning = document.createElement('div');
-        warning.textContent = '⚠️ BALLOON ESCAPED!';
+        warning.innerHTML = '⚠️ BALLOON ESCAPED!';
         Object.assign(warning.style, {
             position: 'absolute',
             top: '40%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            fontSize: '36px',
-            color: '#ff6b6b',
-            fontWeight: 'bold',
-            textShadow: '0 0 20px rgba(255, 107, 107, 0.8)',
-            animation: 'fadeOut 2s forwards',
+            fontSize: '48px',
+            color: '#ff4444',
+            fontWeight: '900',
+            textShadow: '0 0 30px rgba(255, 0, 0, 0.8), 2px 2px 0px black',
+            animation: 'zoomFadeOut 2s forwards',
             zIndex: '900',
+            whiteSpace: 'nowrap',
+            fontFamily: 'Arial, sans-serif'
         });
         container.appendChild(warning);
         setTimeout(() => warning.remove(), 2000);
@@ -391,17 +393,18 @@ export function initUI(container) {
 
     function showSpawnWarning(x, y) {
         const warning = document.createElement('div');
-        warning.textContent = '⚠️';
+        warning.innerHTML = '⚠️';
         Object.assign(warning.style, {
             position: 'absolute',
             left: x + '%',
             top: y + '%',
-            fontSize: '48px',
-            color: '#ff6b6b',
+            fontSize: '64px',
+            color: '#ffcc00',
             fontWeight: 'bold',
-            textShadow: '0 0 20px rgba(255, 107, 107, 1)',
-            animation: 'pulse 0.5s 3',
+            textShadow: '0 0 20px rgba(255, 204, 0, 1), 2px 2px 0px black',
+            animation: 'pulseWarning 0.5s 3',
             transform: 'translate(-50%, -50%)',
+            pointerEvents: 'none'
         });
         warningsContainer.appendChild(warning);
         setTimeout(() => warning.remove(), 1500);
@@ -466,6 +469,17 @@ export function initUI(container) {
         @keyframes fadeOut {
             0% { opacity: 1; }
             100% { opacity: 0; }
+        }
+        @keyframes zoomFadeOut {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            10% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+        }
+        @keyframes pulseWarning {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
         }
     `;
     document.head.appendChild(style);

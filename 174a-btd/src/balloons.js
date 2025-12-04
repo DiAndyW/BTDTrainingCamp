@@ -8,10 +8,10 @@ let onBalloonEscape = null;
 let onBalloonSpawn = null;
 
 // Balloon body material
-const balloonMaterial = new THREE.MeshPhongMaterial({
+const balloonMaterial = new THREE.MeshStandardMaterial({
     color: 0xff0000,
-    shininess: 80,
-    specular: 0x222222,
+    roughness: 0.3,
+    metalness: 0.1,
     flatShading: false,
 });
 
@@ -111,6 +111,31 @@ export function updateBalloons(scene, dt, gravity) {
     for (let i = balloons.length - 1; i >= 0; i--) {
         const b = balloons[i];
 
+        // Handle dying state (deflating/escaping)
+        if (b.isDying) {
+            b.mesh.position.y += dt * 5; // Fly up quickly
+            b.mesh.scale.multiplyScalar(0.95); // Shrink
+            b.mesh.rotation.y += dt * 10; // Spin
+
+            if (b.mesh.scale.x < 0.1) {
+                // Actually remove
+                scene.remove(b.mesh);
+                b.mesh.traverse((child) => {
+                    if (child.isMesh) {
+                        child.geometry.dispose();
+                        child.material.dispose();
+                    }
+                });
+                balloons.splice(i, 1);
+                
+                // Spawn replacement if it was an escape
+                if (b.wasEscape) {
+                    spawnBalloon(scene);
+                }
+            }
+            continue;
+        }
+
         // Floating motion
         b.time += dt * 0.8;
         const arcOffset = Math.sin(b.time) * 0.3;
@@ -127,21 +152,13 @@ export function updateBalloons(scene, dt, gravity) {
         const y = b.mesh.position.y;
 
         // remove life if ballon escapes past the floor
-        if (y < -2) {
+        if (y < -0.5) {
             if (onBalloonEscape) onBalloonEscape();
 
-            scene.remove(b.mesh);
-            b.mesh.traverse((child) => {
-                if (child.isMesh) {
-                    child.geometry.dispose();
-                    child.material.dispose();
-                }
-            });
-            balloons.splice(i, 1);
-
-            // Keep balloons flowing
-            spawnBalloon(scene);
-            continue;
+            // Start dying animation instead of instant remove
+            b.isDying = true;
+            b.wasEscape = true;
+            // continue; // Let the loop continue to handle the dying state next frame
         }
     }
 }

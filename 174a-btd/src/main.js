@@ -8,6 +8,7 @@ import { loadCones, loadPlayerHand } from './objects.js';
 import { spawnBalloon, updateBalloons, getBalloons, removeBalloon, setCallbacks } from './balloons.js';
 import { shootProjectile, updateProjectiles, getProjectiles, removeProjectile } from './projectiles.js';
 import { initControls } from './controls.js';
+import { updateParticles, createExplosion } from './particles.js';
 
 // Root container
 const root = document.getElementById('root');
@@ -74,6 +75,7 @@ function animate() {
         updateMovement(dt, moveSpeed, checkWallCollision);
         updateProjectiles(scene, dt, gravity);
         updateBalloons(scene, dt, gravity);
+        updateParticles(scene, dt);
 
         const balloons = getBalloons();
         const projectiles = getProjectiles();
@@ -108,6 +110,9 @@ function animate() {
                     // REMOVE BY INDEX (your original logic)
                     removeBalloon(scene, i);
                     removeProjectile(scene, j);
+
+                    // Explosion effect
+                    createExplosion(scene, tmpB, 0xff0000);
 
                     addScore(10);
                     spawnBalloon(scene);
