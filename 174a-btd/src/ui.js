@@ -1,11 +1,13 @@
 // ui.js - Enhanced UI with menus, warnings, and advanced scoring
+import { WEAPONS, setCurrentWeapon, getCurrentWeapon } from './weapons.js';
+import { loadWeaponModel } from './objects.js';
 
 export function initUI(container) {
     let score = 0;
     let highScore = parseInt(localStorage.getItem('btd-highscore') || '0');
     let combo = 0;
     let multiplier = 1;
-    let lives = 5;
+    let lives = 999;
     let gameStarted = false;
     let gamePaused = false;
     let lastHitTime = 0;
@@ -69,6 +71,102 @@ export function initUI(container) {
     `;
     mainMenu.appendChild(instructions);
     container.appendChild(mainMenu);
+
+    // Weapon Selection Menu
+    const weaponMenu = document.createElement('div');
+    Object.assign(weaponMenu.style, {
+        position: 'absolute',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(0, 0, 0, 0.95)',
+        display: 'none',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: '1000',
+    });
+
+    const weaponTitle = document.createElement('div');
+    weaponTitle.textContent = 'CHOOSE YOUR WEAPON';
+    Object.assign(weaponTitle.style, {
+        fontSize: '42px',
+        color: '#4ecdc4',
+        fontWeight: 'bold',
+        marginBottom: '40px',
+        textShadow: '0 0 20px rgba(78, 205, 196, 0.8)',
+    });
+    weaponMenu.appendChild(weaponTitle);
+
+    const weaponGrid = document.createElement('div');
+    Object.assign(weaponGrid.style, {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '20px',
+        maxWidth: '800px',
+    });
+
+    // Create weapon selection cards
+    Object.values(WEAPONS).forEach(weapon => {
+        const card = document.createElement('div');
+        Object.assign(card.style, {
+            padding: '25px',
+            backgroundColor: 'rgba(78, 205, 196, 0.1)',
+            border: '2px solid #4ecdc4',
+            borderRadius: '15px',
+            cursor: 'pointer',
+            transition: 'all 0.3s',
+            textAlign: 'center',
+        });
+
+        card.innerHTML = `
+            <div style="font-size: 28px; color: #ffd93d; font-weight: bold; margin-bottom: 10px;">
+                ${weapon.name}
+            </div>
+            <div style="font-size: 14px; color: #ccc; margin-bottom: 15px; line-height: 1.6;">
+                ${weapon.description}
+            </div>
+            <div style="display: flex; justify-content: space-around; margin-top: 15px;">
+                <div style="text-align: center;">
+                    <div style="color: #ff6b6b; font-size: 12px;">DAMAGE</div>
+                    <div style="color: white; font-size: 20px; font-weight: bold;">${weapon.damage}x</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="color: #4ecdc4; font-size: 12px;">FIRE RATE</div>
+                    <div style="color: white; font-size: 20px; font-weight: bold;">${(1/weapon.fireRate).toFixed(1)}/s</div>
+                </div>
+            </div>
+        `;
+
+        card.onmouseover = () => {
+            card.style.backgroundColor = 'rgba(78, 205, 196, 0.3)';
+            card.style.transform = 'scale(1.05)';
+            card.style.borderColor = '#ffd93d';
+        };
+        card.onmouseout = () => {
+            card.style.backgroundColor = 'rgba(78, 205, 196, 0.1)';
+            card.style.transform = 'scale(1)';
+            card.style.borderColor = '#4ecdc4';
+        };
+        card.onclick = () => {
+            setCurrentWeapon(weapon.id);
+            weaponMenu.style.display = 'none';
+
+            // Load weapon model
+            if (window.gameCamera) {
+                loadWeaponModel(window.gameCamera, weapon);
+            }
+
+            startGame();
+            if (window.onGameStart) window.onGameStart();
+        };
+
+        weaponGrid.appendChild(card);
+    });
+
+    weaponMenu.appendChild(weaponGrid);
+    container.appendChild(weaponMenu);
 
     // Crosshair
     const crosshair = document.createElement('div');
@@ -144,6 +242,16 @@ export function initUI(container) {
         marginTop: '8px',
     });
     statsPanel.appendChild(comboDiv);
+
+    const weaponDiv = document.createElement('div');
+    Object.assign(weaponDiv.style, {
+        fontSize: '14px',
+        color: '#4ecdc4',
+        marginTop: '12px',
+        paddingTop: '8px',
+        borderTop: '1px solid rgba(78, 205, 196, 0.3)',
+    });
+    statsPanel.appendChild(weaponDiv);
 
     hudContainer.appendChild(statsPanel);
 
@@ -310,9 +418,18 @@ export function initUI(container) {
         score = 0;
         combo = 0;
         multiplier = 1;
-        lives = 5;
+        lives = 999;
         updateScore();
         updateLives();
+        updateWeaponDisplay();
+    }
+
+    function updateWeaponDisplay() {
+        const weapon = getCurrentWeapon();
+        weaponDiv.innerHTML = `
+            <div style="font-weight: bold; margin-bottom: 4px;">⚔️ ${weapon.name}</div>
+            <div style="font-size: 11px; opacity: 0.8;">DMG: ${weapon.damage}x | Rate: ${(1/weapon.fireRate).toFixed(1)}/s</div>
+        `;
     }
 
     function updateScore() {
@@ -431,8 +548,8 @@ export function initUI(container) {
 
     // Event listeners
     startButton.addEventListener('click', () => {
-        startGame();
-        if (window.onGameStart) window.onGameStart();
+        mainMenu.style.display = 'none';
+        weaponMenu.style.display = 'flex';
     });
 
     resumeButton.addEventListener('click', () => {

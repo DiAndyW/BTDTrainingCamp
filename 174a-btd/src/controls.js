@@ -1,5 +1,6 @@
 // controls.js - Keyboard and pointer lock controls
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import { getCurrentWeapon } from './weapons.js';
 
 export function initControls(camera, renderer, onShoot) {
     const controls = new PointerLockControls(camera, renderer.domElement);
@@ -10,6 +11,8 @@ export function initControls(camera, renderer, onShoot) {
         left: false,
         right: false
     };
+
+    let lastShotTime = 0;
 
     function onKeyDown(event) {
         switch (event.code) {
@@ -61,7 +64,14 @@ export function initControls(camera, renderer, onShoot) {
         if (!controls.isLocked) {
             controls.lock();
         } else {
-            onShoot();
+            const currentTime = performance.now() / 1000; // Convert to seconds
+            const weapon = getCurrentWeapon();
+            const timeSinceLastShot = currentTime - lastShotTime;
+
+            if (timeSinceLastShot >= weapon.fireRate) {
+                onShoot();
+                lastShotTime = currentTime;
+            }
         }
     }
 
