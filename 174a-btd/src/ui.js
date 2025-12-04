@@ -145,7 +145,95 @@ export function initUI(container) {
     });
     statsPanel.appendChild(comboDiv);
 
+    const waveDiv = document.createElement('div');
+    waveDiv.textContent = 'Wave: 1';
+    Object.assign(waveDiv.style, {
+        fontSize: '24px',
+        color: '#4ecdc4',
+        fontWeight: 'bold',
+        marginTop: '15px',
+        textShadow: '0 0 10px rgba(78, 205, 196, 0.8)',
+    });
+    statsPanel.appendChild(waveDiv);
+
     hudContainer.appendChild(statsPanel);
+
+    // Shop Toggle Button
+    const shopToggleBtn = document.createElement('button');
+    shopToggleBtn.textContent = '🛒 SHOP (B)';
+    Object.assign(shopToggleBtn.style, {
+        position: 'absolute',
+        bottom: '20px',
+        right: '20px',
+        padding: '10px 20px',
+        fontSize: '18px',
+        backgroundColor: '#ffd93d',
+        color: 'black',
+        border: 'none',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        pointerEvents: 'auto',
+        boxShadow: '0 4px 10px rgba(0,0,0,0.3)'
+    });
+    shopToggleBtn.onclick = () => {
+        shopContainer.style.display = shopContainer.style.display === 'none' ? 'block' : 'none';
+    };
+    hudContainer.appendChild(shopToggleBtn);
+
+    // Shop UI
+    const shopContainer = document.createElement('div');
+    Object.assign(shopContainer.style, {
+        position: 'absolute',
+        bottom: '70px', // Moved up to sit above toggle button
+        right: '20px',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        padding: '15px',
+        borderRadius: '10px',
+        border: '2px solid #ffd93d',
+        display: 'none', // Hidden by default
+        pointerEvents: 'auto', // Enable clicks
+    });
+    hudContainer.appendChild(shopContainer);
+
+    const shopTitle = document.createElement('div');
+    shopTitle.textContent = 'SHOP (Press B)';
+    Object.assign(shopTitle.style, {
+        color: '#ffd93d',
+        fontWeight: 'bold',
+        marginBottom: '10px',
+        textAlign: 'center',
+    });
+    shopContainer.appendChild(shopTitle);
+
+    const upgradeButtons = {};
+
+    function createUpgradeButton(id, name, cost) {
+        const btn = document.createElement('button');
+        btn.textContent = `${name} ($${cost})`;
+        Object.assign(btn.style, {
+            display: 'block',
+            width: '100%',
+            padding: '8px',
+            marginBottom: '5px',
+            backgroundColor: '#333',
+            color: 'white',
+            border: '1px solid #555',
+            borderRadius: '5px',
+            cursor: 'pointer',
+        });
+        btn.onclick = () => {
+             if (window.gameManager && window.gameManager.buyUpgrade(id)) {
+                 // Success
+             }
+        };
+        shopContainer.appendChild(btn);
+        upgradeButtons[id] = btn;
+    }
+
+    createUpgradeButton('rapidFire', 'Rapid Fire', 100);
+    createUpgradeButton('multiShot', 'Multi-Shot', 500);
+    createUpgradeButton('damage', 'Damage Up', 200);
 
     // Lives display
     const livesDiv = document.createElement('div');
@@ -307,6 +395,7 @@ export function initUI(container) {
         mainMenu.style.display = 'none';
         hudContainer.style.display = 'block';
         crosshair.style.display = 'block';
+        shopContainer.style.display = 'block';
         score = 0;
         combo = 0;
         multiplier = 1;
@@ -457,6 +546,9 @@ export function initUI(container) {
                 pauseGame();
             }
         }
+        if (e.key.toLowerCase() === 'b' && gameStarted && !gamePaused) {
+            shopContainer.style.display = shopContainer.style.display === 'none' ? 'block' : 'none';
+        }
     });
 
     // Add CSS animations
@@ -494,6 +586,38 @@ export function initUI(container) {
         isGamePaused: () => gamePaused,
         crosshair,
         scoreDiv,
-        hintDiv
+        hintDiv,
+        updateScore: (s, m) => { score = s; updateScore(); },
+        updateLives: (l) => { lives = l; updateLives(); },
+        updateWave: (w) => { waveDiv.textContent = `Wave: ${w}`; },
+        updateShop: (upgrades) => {
+             for (const [key, data] of Object.entries(upgrades)) {
+                 if (upgradeButtons[key]) {
+                     upgradeButtons[key].textContent = `${data.name} (Lvl ${data.level}) - $${data.cost}`;
+                     if (data.level >= data.max) {
+                         upgradeButtons[key].textContent = `${data.name} (MAX)`;
+                         upgradeButtons[key].disabled = true;
+                     }
+                 }
+             }
+        },
+        showWaveComplete: (w) => {
+             const msg = document.createElement('div');
+             msg.textContent = `WAVE ${w-1} COMPLETE!`;
+             Object.assign(msg.style, {
+                 position: 'absolute',
+                 top: '30%',
+                 left: '50%',
+                 transform: 'translate(-50%, -50%)',
+                 fontSize: '48px',
+                 color: '#4ecdc4',
+                 fontWeight: 'bold',
+                 textShadow: '0 0 20px rgba(78, 205, 196, 0.8)',
+                 animation: 'fadeOut 3s forwards',
+                 pointerEvents: 'none'
+             });
+             container.appendChild(msg);
+             setTimeout(() => msg.remove(), 3000);
+        }
     };
 }

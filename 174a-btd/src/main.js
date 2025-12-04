@@ -9,6 +9,7 @@ import { spawnBalloon, updateBalloons, getBalloons, removeBalloon, setCallbacks 
 import { shootProjectile, updateProjectiles, getProjectiles, removeProjectile } from './projectiles.js';
 import { initControls } from './controls.js';
 import { updateParticles, createExplosion } from './particles.js';
+import { GameManager } from './game.js';
 
 // Root container
 const root = document.getElementById('root');
@@ -32,15 +33,32 @@ const { scene, camera, renderer, cleanup: sceneCleanup } = initScene(container);
 const ui = initUI(container);
 const { addScore, loseLife, showSpawnWarning, isGameStarted, isGamePaused } = ui;
 const { checkWallCollision } = initWalls(scene);
+
+// Game Manager
+const gameManager = new GameManager(ui);
+window.gameManager = gameManager; // For UI access
+
 const { updateMovement, cleanup: controlsCleanup } = initControls(
     camera,
     renderer,
-    () => shootProjectile(scene, camera)
+    () => {
+        // Check for rapid fire upgrade
+        const rapidFireLevel = gameManager.getUpgradeLevel('rapidFire');
+        // Base cooldown 500ms, reduce by 50ms per level
+        const cooldown = Math.max(100, 500 - rapidFireLevel * 50);
+        
+        const now = Date.now();
+        if (now - lastShotTime > cooldown) {
+            shootProjectile(scene, camera, gameManager.upgrades);
+            lastShotTime = now;
+        }
+    }
 );
+let lastShotTime = 0;
 
 // Callbacks
 setCallbacks(
-    () => loseLife(),
+    () => gameManager.enemyEscaped(),
     (x, y) => showSpawnWarning(x, y)
 );
 
@@ -50,8 +68,7 @@ loadPlayerHand(camera);
 
 // Start-game handler
 window.onGameStart = () => {
-    spawnBalloon(scene, 2);
-    spawnBalloon(scene, 4);
+    gameManager.startWave(scene, spawnBalloon);
 };
 
 // Physics
@@ -76,6 +93,20 @@ function animate() {
         updateProjectiles(scene, dt, gravity);
         updateBalloons(scene, dt, gravity);
         updateParticles(scene, dt);
+        
+        // Wave management
+        if (!gameManager.waveActive && gameManager.lives > 0) {
+             // Auto start next wave after delay? Or wait for user?
+             // Let's auto start for now after a short delay handled in gameManager or here
+             // Actually gameManager.endWave just updates UI.
+             // Let's add a timer to start next wave
+             if (!gameManager.waveTimer) {
+                 gameManager.waveTimer = setTimeout(() => {
+                     gameManager.startWave(scene, spawnBalloon);
+                     gameManager.waveTimer = null;
+                 }, 4000);
+             }
+        }
 
         const balloons = getBalloons();
         const projectiles = getProjectiles();
@@ -107,15 +138,24 @@ function animate() {
                 const hitDistance = bRadius + pRadius;
 
                 if (dist < hitDistance) {
-                    // REMOVE BY INDEX (your original logic)
-                    removeBalloon(scene, i);
+                    // Explosion effect
+                    createExplosion(scene, tmpB, 0xff0000); // TODO: Color based on balloon type?
+
+                    // Damage balloon
+                    const damage = 1 + (gameManager.getUpgradeLevel('damage') || 0);
+                    b.health -= damage;
+
+                    // Remove projectile
                     removeProjectile(scene, j);
 
-                    // Explosion effect
-                    createExplosion(scene, tmpB, 0xff0000);
-
-                    addScore(10);
-                    spawnBalloon(scene);
+                    if (b.health <= 0) {
+                        // Kill balloon
+                        removeBalloon(scene, i);
+                        gameManager.enemyDefeated(10 * (b.maxHealth || 1));
+                    } else {
+                        // Hit effect but not dead?
+                        // Maybe flash white?
+                    }
 
                     break;
                 }

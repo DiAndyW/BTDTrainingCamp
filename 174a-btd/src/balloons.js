@@ -7,13 +7,13 @@ const objLoader = new OBJLoader();
 let onBalloonEscape = null;
 let onBalloonSpawn = null;
 
-// Balloon body material
-const balloonMaterial = new THREE.MeshStandardMaterial({
-    color: 0xff0000,
-    roughness: 0.3,
-    metalness: 0.1,
-    flatShading: false,
-});
+// Balloon materials
+const materials = {
+    red: new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.3, metalness: 0.1 }),
+    blue: new THREE.MeshStandardMaterial({ color: 0x0088ff, roughness: 0.3, metalness: 0.1 }),
+    green: new THREE.MeshStandardMaterial({ color: 0x00ff00, roughness: 0.3, metalness: 0.1 }),
+    yellow: new THREE.MeshStandardMaterial({ color: 0xffff00, roughness: 0.3, metalness: 0.1 })
+};
 
 // String material
 const stringMaterial = new THREE.MeshPhongMaterial({
@@ -40,7 +40,7 @@ function createBalloonMesh(callback) {
                     child.geometry.boundingBox.getCenter(center);
                     child.geometry.translate(-center.x, -center.y, -center.z);
 
-                    child.material = balloonMaterial;
+                    child.material = materials.red; // Default
                     child.castShadow = true;
                     child.receiveShadow = true;
                 }
@@ -79,7 +79,7 @@ function createBalloonMesh(callback) {
     );
 }
 
-export function spawnBalloon(scene, startY = null) {
+export function spawnBalloon(scene, startY = null, type = 'red') {
     const yPos = startY !== null ? startY : 0.5 + Math.random() * 4;
 
     // Show spawn warning UI
@@ -87,21 +87,54 @@ export function spawnBalloon(scene, startY = null) {
         onBalloonSpawn(15, 50); // 15% left, 50% height
     }
 
+    // Config based on type
+    let speed = 1.5;
+    let health = 1;
+    let scale = 1.0;
+    let radius = 1.3;
+    
+    if (type === 'blue') { speed = 2.5; }
+    if (type === 'green') { speed = 1.2; health = 2; scale = 1.1; }
+    if (type === 'yellow') { speed = 0.8; health = 5; scale = 2.0; radius = 2.5; }
+
     // Spawn after warning delay
     setTimeout(() => {
         createBalloonMesh((balloonMesh) => {
             // Start off-screen left
             balloonMesh.position.set(-5, yPos, -10);
+            
+            // Apply type-specific material and scale
+            balloonMesh.traverse((child) => {
+                if (child.isMesh && child.geometry.type !== 'CylinderGeometry') { // Avoid string (cylinder-ish?) No string is OBJ too.
+                    // We need to identify the balloon body vs string.
+                    // In createBalloonMesh, we added balloonObject then stringObject.
+                    // But here we have the group.
+                    // Let's just apply to the first child which is the balloon body usually?
+                    // Actually createBalloonMesh loads them async.
+                    // Let's assume the material assignment in createBalloonMesh is default red.
+                    // We can override it here.
+                    // The balloon body has > 100 vertices usually.
+                    if (child.geometry.attributes.position.count > 100) {
+                         child.material = materials[type];
+                    }
+                }
+            });
+            
+            balloonMesh.scale.multiplyScalar(scale);
+            
             scene.add(balloonMesh);
 
             // Movement
-            const velocity = new THREE.Vector3(1.5, 0.1, 0);
+            const velocity = new THREE.Vector3(speed, 0.1, 0);
 
             balloons.push({
                 mesh: balloonMesh,
                 velocity,
-                radius: 1.3,
-                time: Math.random() * Math.PI * 2
+                radius: radius * scale,
+                time: Math.random() * Math.PI * 2,
+                health: health,
+                type: type,
+                maxHealth: health
             });
         });
     }, 1500);
@@ -130,7 +163,7 @@ export function updateBalloons(scene, dt, gravity) {
                 
                 // Spawn replacement if it was an escape
                 if (b.wasEscape) {
-                    spawnBalloon(scene);
+                    // spawnBalloon(scene); // Don't auto-spawn in wave mode
                 }
             }
             continue;

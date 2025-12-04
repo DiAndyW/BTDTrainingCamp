@@ -4,7 +4,7 @@ import * as THREE from 'three';
 const projectiles = [];
 const raycaster = new THREE.Raycaster();
 
-export function shootProjectile(scene, camera) {
+export function shootProjectile(scene, camera, upgrades = {}) {
     const origin = new THREE.Vector3();
     const dir = new THREE.Vector3();
 
@@ -13,22 +13,33 @@ export function shootProjectile(scene, camera) {
     camera.getWorldDirection(dir);
 
     const speed = 50;
-    const velocity = dir.clone().multiplyScalar(speed);
+    // Multi-Shot Logic
+    const shotCount = upgrades.multiShot?.level > 0 ? 3 : 1;
+    
+    for (let i = 0; i < shotCount; i++) {
+        const bulletDir = dir.clone();
+        
+        if (i === 1) bulletDir.applyAxisAngle(new THREE.Vector3(0, 1, 0), 0.1); // Right
+        if (i === 2) bulletDir.applyAxisAngle(new THREE.Vector3(0, 1, 0), -0.1); // Left
 
-    // Projectile mesh
-    const geom = new THREE.SphereGeometry(0.1, 16, 16);
-    const mat = new THREE.MeshPhongMaterial({ color: 0x000000 });
-    const bullet = new THREE.Mesh(geom, mat);
-    bullet.castShadow = true;
-    bullet.position.copy(origin);
-    scene.add(bullet);
+        const velocity = bulletDir.multiplyScalar(speed);
 
-    projectiles.push({
-        mesh: bullet,
-        velocity,
-        radius: 0.3,
-        prevPos: origin.clone(),   // Store previous frame position
-    });
+        // Projectile mesh
+        const geom = new THREE.SphereGeometry(0.1, 16, 16);
+        const mat = new THREE.MeshPhongMaterial({ color: 0x000000 });
+        const bullet = new THREE.Mesh(geom, mat);
+        bullet.castShadow = true;
+        bullet.position.copy(origin);
+        scene.add(bullet);
+
+        projectiles.push({
+            mesh: bullet,
+            velocity,
+            radius: 0.3,
+            prevPos: origin.clone(),
+            damage: 1 + (upgrades.damage?.level || 0)
+        });
+    }
 }
 
 export function updateProjectiles(scene, dt, gravity) {
