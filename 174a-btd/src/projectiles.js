@@ -132,9 +132,11 @@ export function updateProjectiles(scene, dt, gravity) {
             p.mesh.rotation.z += p.spinSpeed * dt;
         }
 
-        // Remove dead projectiles
+        // Remove dead projectiles (floor, side walls, or too far away)
         if (
             p.mesh.position.y < -5 ||
+            p.mesh.position.x > 6 ||
+            p.mesh.position.x < -6 ||
             p.mesh.position.lengthSq() > 10000
         ) {
             scene.remove(p.mesh);
