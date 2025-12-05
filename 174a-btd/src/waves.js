@@ -9,6 +9,7 @@ let spawnTimer = null;
 let onWaveComplete = null;
 let onWaveStart = null;
 let scene = null;
+let isPausedCallback = null;
 
 // Wave definitions - each wave specifies balloon counts
 const WAVE_CONFIGS = [
@@ -133,10 +134,11 @@ function getWaveConfig(waveNum) {
     return generateWave(waveNum);
 }
 
-export function initWaves(gameScene, waveStartCallback, waveCompleteCallback) {
+export function initWaves(gameScene, waveStartCallback, waveCompleteCallback, isPausedFunc = null) {
     scene = gameScene;
     onWaveStart = waveStartCallback;
     onWaveComplete = waveCompleteCallback;
+    isPausedCallback = isPausedFunc;
     currentWave = 0;
     balloonsInWave = 0;
     balloonsSpawned = 0;
@@ -176,6 +178,12 @@ export function startNextWave() {
     // Start spawning
     let spawnIndex = 0;
     function spawnNext() {
+        // If game is paused, reschedule instead of spawning
+        if (isPausedCallback && isPausedCallback()) {
+            spawnTimer = setTimeout(spawnNext, 100); // Check again in 100ms
+            return;
+        }
+
         if (spawnIndex < spawnQueue.length) {
             const yPos = 0.5 + Math.random() * 4;
             spawnBalloon(scene, yPos, spawnQueue[spawnIndex]);

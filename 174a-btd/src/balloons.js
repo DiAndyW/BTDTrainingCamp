@@ -1,6 +1,7 @@
 // balloons.js - Balloon creation and management with BTD-style types
 import * as THREE from 'three';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { getBalloonSize, getSpawnDirection } from './config.js';
 
 const balloons = [];
 const objLoader = new OBJLoader();
@@ -118,7 +119,7 @@ function createBalloonMaterial(balloonType) {
 }
 
 // HP Bar helper
-function createHealthBar(health, maxHealth) {
+function createHealthBar(health, maxHealth, balloonSize = 1.0) {
     const canvas = document.createElement('canvas');
     canvas.width = 64;
     canvas.height = 8;
@@ -138,8 +139,8 @@ function createHealthBar(health, maxHealth) {
     const material = new THREE.SpriteMaterial({ map: texture });
     const sprite = new THREE.Sprite(material);
 
-    sprite.scale.set(1.5, 0.2, 1);
-    sprite.position.set(0, 1.8, 0); // Above balloon
+    sprite.scale.set(1.5 * balloonSize, 0.2 * balloonSize, 1);
+    sprite.position.set(0, 1.8 * balloonSize, 0); // Above balloon, scaled by size
 
     return sprite;
 }
@@ -173,8 +174,8 @@ function createBalloonMesh(balloonType, callback) {
     objLoader.load(
         '../models/balloon.obj',
         function (balloonObject) {
-
-            balloonObject.scale.set(0.8, 0.8, 0.8);
+            const sizeMultiplier = getBalloonSize();
+            balloonObject.scale.set(0.8 * sizeMultiplier, 0.8 * sizeMultiplier, 0.8 * sizeMultiplier);
 
             balloonObject.traverse((child) => {
                 if (child.isMesh) {
@@ -201,12 +202,12 @@ function createBalloonMesh(balloonType, callback) {
     objLoader.load(
         '../models/string.obj',
         function (stringObject) {
-
-            stringObject.scale.set(0.7, 0.7, 0.7);
-            stringObject.scale.y = 1.2; // Stretch string vertically
+            const sizeMultiplier = getBalloonSize();
+            stringObject.scale.set(0.7 * sizeMultiplier, 0.7 * sizeMultiplier, 0.7 * sizeMultiplier);
+            stringObject.scale.y = 1.2 * sizeMultiplier; // Stretch string vertically
 
             // After centering balloon, string must be repositioned
-            stringObject.position.set(0, -2, 0);
+            stringObject.position.set(0, -2 * sizeMultiplier, 0);
 
             stringObject.traverse((child) => {
                 if (child.isMesh) {
@@ -231,9 +232,22 @@ export function spawnBalloon(scene, startY = null, balloonTypeId = 'RED', positi
     const yPos = startY !== null ? startY : chosenHeight + (Math.random() - 0.5) * 0.3;
     const balloonType = BALLOON_TYPES[balloonTypeId] || BALLOON_TYPES.RED;
 
+    // Determine spawn side based on config
+    const spawnDirection = getSpawnDirection();
+    let spawnFromLeft;
+
+    if (spawnDirection === 'random') {
+        spawnFromLeft = Math.random() < 0.5;
+    } else if (spawnDirection === 'right') {
+        spawnFromLeft = false;
+    } else { // 'left' or default
+        spawnFromLeft = true;
+    }
+
     // Show spawn warning UI (only for non-child balloons)
     if (onBalloonSpawn && position === null) {
-        onBalloonSpawn(15, 50); // 15% left, 50% height
+        const xPercent = spawnFromLeft ? 15 : 85; // Left side or right side
+        onBalloonSpawn(xPercent, 50); // x% horizontal, 50% height
     }
 
     // Spawn after warning delay (instant if spawned from pop)
@@ -241,23 +255,25 @@ export function spawnBalloon(scene, startY = null, balloonTypeId = 'RED', positi
 
     setTimeout(() => {
         createBalloonMesh(balloonType, (balloonMesh, balloonObject) => {
-            // Start position
-            const startX = position !== null ? position.x : -5;
+            // Start position - use spawn direction unless this is a child balloon
+            const startX = position !== null ? position.x : (spawnFromLeft ? -5 : 5);
             const startZ = position !== null ? position.z : -10;
             const actualY = position !== null ? position.y : yPos;
 
             balloonMesh.position.set(startX, actualY, startZ);
 
             // HP Bar (always show for visibility)
-            const hpBar = createHealthBar(balloonType.health, balloonType.health);
+            const balloonSize = getBalloonSize();
+            const hpBar = createHealthBar(balloonType.health, balloonType.health, balloonSize);
             balloonMesh.add(hpBar);
 
             scene.add(balloonMesh);
 
-            // Movement - speed based on balloon type
+            // Movement - speed based on balloon type and spawn direction
             const baseSpeed = 1.5;
+            const directionMultiplier = spawnFromLeft ? 1 : -1;
             const velocity = new THREE.Vector3(
-                baseSpeed * balloonType.speedMultiplier,
+                baseSpeed * balloonType.speedMultiplier * directionMultiplier,
                 0.1,
                 0
             );
@@ -270,7 +286,7 @@ export function spawnBalloon(scene, startY = null, balloonTypeId = 'RED', positi
                 mesh: balloonMesh,
                 balloonObject: balloonObject, // Store reference to just the balloon part
                 velocity,
-                radius: 1.3,
+                radius: 1.3 * getBalloonSize(),
                 time: Math.random() * Math.PI * 2,
                 type: balloonType,
                 health: balloonType.health,
