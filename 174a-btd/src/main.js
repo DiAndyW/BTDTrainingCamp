@@ -11,6 +11,7 @@ import { initControls } from './controls.js';
 import { updateParticles, createExplosion, createSparkles } from './particles.js';
 import { initWaves, startNextWave, checkWaveComplete, getWaveProgress, isWaveActive } from './waves.js';
 import { TrajectoryPreview } from './trajectory.js';
+import { getGravity } from './config.js';
 
 // Root container
 const root = document.getElementById('root');
@@ -82,9 +83,14 @@ window.onGameStart = () => {
 };
 
 // Physics
-const gravity = new THREE.Vector3(0, -9.8, 0);
+const gravity = new THREE.Vector3(0, 0, 0);
 const clock = new THREE.Clock();
 const moveSpeed = 8.0;
+
+// Update gravity from config
+function updateGravity() {
+    gravity.y = getGravity();
+}
 
 // Temp vectors
 // Temp vectors
@@ -109,7 +115,7 @@ function animate() {
     const dt = clock.getDelta();
 
     if (isGameStarted() && !isGamePaused()) {
-
+        updateGravity(); // Update gravity from config
         updateMovement(dt, moveSpeed, checkWallCollision);
         updateProjectiles(scene, dt, gravity);
         updateBalloons(scene, dt, gravity);

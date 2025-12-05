@@ -1,6 +1,7 @@
 // balloons.js - Balloon creation and management with BTD-style types
 import * as THREE from 'three';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { getBalloonSize } from './config.js';
 
 const balloons = [];
 const objLoader = new OBJLoader();
@@ -173,8 +174,8 @@ function createBalloonMesh(balloonType, callback) {
     objLoader.load(
         '../models/balloon.obj',
         function (balloonObject) {
-
-            balloonObject.scale.set(0.8, 0.8, 0.8);
+            const sizeMultiplier = getBalloonSize();
+            balloonObject.scale.set(0.8 * sizeMultiplier, 0.8 * sizeMultiplier, 0.8 * sizeMultiplier);
 
             balloonObject.traverse((child) => {
                 if (child.isMesh) {
@@ -270,7 +271,7 @@ export function spawnBalloon(scene, startY = null, balloonTypeId = 'RED', positi
                 mesh: balloonMesh,
                 balloonObject: balloonObject, // Store reference to just the balloon part
                 velocity,
-                radius: 1.3,
+                radius: 1.3 * getBalloonSize(),
                 time: Math.random() * Math.PI * 2,
                 type: balloonType,
                 health: balloonType.health,
