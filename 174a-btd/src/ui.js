@@ -1,7 +1,7 @@
 // ui.js - Enhanced UI with menus, warnings, and advanced scoring
 import { WEAPONS, setCurrentWeapon, getCurrentWeapon } from './weapons.js';
 import { loadWeaponModel } from './objects.js';
-import { getGravity, setGravity, getBalloonSize, setBalloonSize, getSpawnDirection, setSpawnDirection, getMovementPattern, setMovementPattern, resetConfig } from './config.js';
+import { getGravity, setGravity, getBalloonSize, setBalloonSize, getSpawnDirection, setSpawnDirection, getMovementPattern, setMovementPattern, getBaseSpeed, setBaseSpeed, resetConfig } from './config.js';
 
 export function initUI(container) {
     let score = 0;
@@ -603,10 +603,56 @@ export function initUI(container) {
 
     settingsPanel.appendChild(sizeContainer);
 
+    // Base speed control
+    const speedContainer = document.createElement('div');
+    Object.assign(speedContainer.style, {
+        marginBottom: '30px',
+        textAlign: 'left',
+    });
+
+    const speedLabel = document.createElement('div');
+    speedLabel.textContent = 'Base Speed:';
+    Object.assign(speedLabel.style, {
+        fontSize: '18px',
+        color: '#ffeaa0',
+        fontWeight: 'bold',
+        marginBottom: '10px',
+        fontFamily: '"Fredoka", sans-serif',
+    });
+    speedContainer.appendChild(speedLabel);
+
+    const speedSlider = document.createElement('input');
+    speedSlider.type = 'range';
+    speedSlider.min = '0.5';
+    speedSlider.max = '3.0';
+    speedSlider.step = '0.1';
+    speedSlider.value = getBaseSpeed().toString();
+    Object.assign(speedSlider.style, {
+        width: '100%',
+        height: '8px',
+        borderRadius: '5px',
+        outline: 'none',
+        background: 'linear-gradient(90deg, #45b7d1 0%, #f9ca24 100%)',
+        cursor: 'pointer',
+    });
+    speedContainer.appendChild(speedSlider);
+
+    const speedValue = document.createElement('div');
+    speedValue.textContent = `${getBaseSpeed().toFixed(1)}x`;
+    Object.assign(speedValue.style, {
+        fontSize: '16px',
+        color: '#e8d5a3',
+        marginTop: '8px',
+        fontFamily: '"Fredoka", sans-serif',
+    });
+    speedContainer.appendChild(speedValue);
+
+    settingsPanel.appendChild(speedContainer);
+
     // Spawn direction control
     const spawnContainer = document.createElement('div');
     Object.assign(spawnContainer.style, {
-        marginBottom: '30px',
+        marginBottom: '25px',
         textAlign: 'left',
     });
 
@@ -621,54 +667,74 @@ export function initUI(container) {
     });
     spawnContainer.appendChild(spawnLabel);
 
-    const spawnButtonsContainer = document.createElement('div');
-    Object.assign(spawnButtonsContainer.style, {
+    const spawnControlContainer = document.createElement('div');
+    Object.assign(spawnControlContainer.style, {
         display: 'flex',
+        alignItems: 'center',
         gap: '10px',
-        justifyContent: 'space-between',
+        background: 'rgba(0,0,0,0.2)',
+        padding: '10px',
+        borderRadius: '12px',
     });
 
-    const spawnOptions = [
-        { value: 'left', label: 'Left' },
-        { value: 'right', label: 'Right' },
-        { value: 'random', label: 'Random' }
-    ];
+    const spawnOptions = [ 'random', 'left', 'right'];
+    const spawnLabels = { 'random': 'Random', 'left': 'Left', 'right': 'Right' };
+    let currentSpawnIndex = spawnOptions.indexOf(getSpawnDirection());
 
-    const spawnButtons = {};
+    const spawnLeftArrow = document.createElement('button');
+    spawnLeftArrow.textContent = '◀';
+    Object.assign(spawnLeftArrow.style, {
+        fontSize: '20px',
+        padding: '8px 15px',
+        background: 'linear-gradient(180deg, #888 0%, #666 50%, #555 100%)',
+        color: 'white',
+        border: '3px solid #333',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        boxShadow: '0 3px 0px #222, 0 4px 10px rgba(0,0,0,0.3)',
+        transition: 'all 0.15s ease',
+    });
 
-    spawnOptions.forEach(option => {
-        const btn = document.createElement('button');
-        btn.textContent = option.label;
-        btn.dataset.value = option.value;
-        Object.assign(btn.style, {
-            flex: '1',
-            fontSize: '14px',
-            padding: '10px 15px',
-            background: getSpawnDirection() === option.value
-                ? 'linear-gradient(180deg, #66d96a 0%, #4CAF50 50%, #388E3C 100%)'
-                : 'linear-gradient(180deg, #888 0%, #666 50%, #555 100%)',
-            color: 'white',
-            border: '3px solid ' + (getSpawnDirection() === option.value ? '#2E7D32' : '#333'),
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            boxShadow: '0 3px 0px ' + (getSpawnDirection() === option.value ? '#1B5E20' : '#222') + ', 0 4px 10px rgba(0,0,0,0.3)',
-            fontFamily: '"Fredoka", sans-serif',
-            transition: 'all 0.15s ease',
-        });
+    const spawnValueDisplay = document.createElement('div');
+    spawnValueDisplay.textContent = spawnLabels[getSpawnDirection()];
+    Object.assign(spawnValueDisplay.style, {
+        flex: '1',
+        fontSize: '16px',
+        color: '#fff',
+        fontWeight: 'bold',
+        textAlign: 'center',
+        fontFamily: '"Fredoka", sans-serif',
+    });
 
+    const spawnRightArrow = document.createElement('button');
+    spawnRightArrow.textContent = '▶';
+    Object.assign(spawnRightArrow.style, {
+        fontSize: '20px',
+        padding: '8px 15px',
+        background: 'linear-gradient(180deg, #888 0%, #666 50%, #555 100%)',
+        color: 'white',
+        border: '3px solid #333',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        boxShadow: '0 3px 0px #222, 0 4px 10px rgba(0,0,0,0.3)',
+        transition: 'all 0.15s ease',
+    });
+
+    [spawnLeftArrow, spawnRightArrow].forEach(btn => {
         btn.onmouseover = () => {
             btn.style.transform = 'translateY(-2px)';
         };
         btn.onmouseout = () => {
             btn.style.transform = 'translateY(0)';
         };
-
-        spawnButtons[option.value] = btn;
-        spawnButtonsContainer.appendChild(btn);
     });
 
-    spawnContainer.appendChild(spawnButtonsContainer);
+    spawnControlContainer.appendChild(spawnLeftArrow);
+    spawnControlContainer.appendChild(spawnValueDisplay);
+    spawnControlContainer.appendChild(spawnRightArrow);
+    spawnContainer.appendChild(spawnControlContainer);
     settingsPanel.appendChild(spawnContainer);
 
     // Movement pattern control
@@ -689,55 +755,74 @@ export function initUI(container) {
     });
     patternContainer.appendChild(patternLabel);
 
-    const patternButtonsContainer = document.createElement('div');
-    Object.assign(patternButtonsContainer.style, {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '8px',
+    const patternControlContainer = document.createElement('div');
+    Object.assign(patternControlContainer.style, {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        background: 'rgba(0,0,0,0.2)',
+        padding: '10px',
+        borderRadius: '12px',
     });
 
-    const patternOptions = [
-        { value: 'random', label: 'Random' },
-        { value: 'NORMAL', label: 'Normal' },
-        { value: 'ZIGZAG', label: 'Zigzag' },
-        { value: 'SINE', label: 'Sine' },
-        { value: 'SPIRAL', label: 'Spiral' }
-    ];
+    const patternOptions = ['random', 'NORMAL', 'ZIGZAG', 'SINE', 'SPIRAL'];
+    const patternLabels = { 'random': 'Random', 'NORMAL': 'Normal', 'ZIGZAG': 'Zigzag', 'SINE': 'Sine', 'SPIRAL': 'Spiral' };
+    let currentPatternIndex = patternOptions.indexOf(getMovementPattern());
 
-    const patternButtons = {};
+    const patternLeftArrow = document.createElement('button');
+    patternLeftArrow.textContent = '◀';
+    Object.assign(patternLeftArrow.style, {
+        fontSize: '20px',
+        padding: '8px 15px',
+        background: 'linear-gradient(180deg, #888 0%, #666 50%, #555 100%)',
+        color: 'white',
+        border: '3px solid #333',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        boxShadow: '0 3px 0px #222, 0 4px 10px rgba(0,0,0,0.3)',
+        transition: 'all 0.15s ease',
+    });
 
-    patternOptions.forEach(option => {
-        const btn = document.createElement('button');
-        btn.textContent = option.label;
-        btn.dataset.value = option.value;
-        Object.assign(btn.style, {
-            fontSize: '13px',
-            padding: '10px 12px',
-            background: getMovementPattern() === option.value
-                ? 'linear-gradient(180deg, #66d96a 0%, #4CAF50 50%, #388E3C 100%)'
-                : 'linear-gradient(180deg, #888 0%, #666 50%, #555 100%)',
-            color: 'white',
-            border: '3px solid ' + (getMovementPattern() === option.value ? '#2E7D32' : '#333'),
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            boxShadow: '0 3px 0px ' + (getMovementPattern() === option.value ? '#1B5E20' : '#222') + ', 0 4px 10px rgba(0,0,0,0.3)',
-            fontFamily: '"Fredoka", sans-serif',
-            transition: 'all 0.15s ease',
-        });
+    const patternValueDisplay = document.createElement('div');
+    patternValueDisplay.textContent = patternLabels[getMovementPattern()];
+    Object.assign(patternValueDisplay.style, {
+        flex: '1',
+        fontSize: '16px',
+        color: '#fff',
+        fontWeight: 'bold',
+        textAlign: 'center',
+        fontFamily: '"Fredoka", sans-serif',
+    });
 
+    const patternRightArrow = document.createElement('button');
+    patternRightArrow.textContent = '▶';
+    Object.assign(patternRightArrow.style, {
+        fontSize: '20px',
+        padding: '8px 15px',
+        background: 'linear-gradient(180deg, #888 0%, #666 50%, #555 100%)',
+        color: 'white',
+        border: '3px solid #333',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        boxShadow: '0 3px 0px #222, 0 4px 10px rgba(0,0,0,0.3)',
+        transition: 'all 0.15s ease',
+    });
+
+    [patternLeftArrow, patternRightArrow].forEach(btn => {
         btn.onmouseover = () => {
             btn.style.transform = 'translateY(-2px)';
         };
         btn.onmouseout = () => {
             btn.style.transform = 'translateY(0)';
         };
-
-        patternButtons[option.value] = btn;
-        patternButtonsContainer.appendChild(btn);
     });
 
-    patternContainer.appendChild(patternButtonsContainer);
+    patternControlContainer.appendChild(patternLeftArrow);
+    patternControlContainer.appendChild(patternValueDisplay);
+    patternControlContainer.appendChild(patternRightArrow);
+    patternContainer.appendChild(patternControlContainer);
     settingsPanel.appendChild(patternContainer);
 
     // Buttons container
@@ -1407,40 +1492,40 @@ export function initUI(container) {
         sizeValue.textContent = `${value.toFixed(1)}x`;
     });
 
-    // Spawn direction button listeners
-    Object.keys(spawnButtons).forEach(direction => {
-        spawnButtons[direction].addEventListener('click', () => {
-            setSpawnDirection(direction);
-
-            // Update button styles
-            Object.keys(spawnButtons).forEach(key => {
-                const btn = spawnButtons[key];
-                const isActive = key === direction;
-                btn.style.background = isActive
-                    ? 'linear-gradient(180deg, #66d96a 0%, #4CAF50 50%, #388E3C 100%)'
-                    : 'linear-gradient(180deg, #888 0%, #666 50%, #555 100%)';
-                btn.style.border = '3px solid ' + (isActive ? '#2E7D32' : '#333');
-                btn.style.boxShadow = '0 3px 0px ' + (isActive ? '#1B5E20' : '#222') + ', 0 4px 10px rgba(0,0,0,0.3)';
-            });
-        });
+    speedSlider.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        setBaseSpeed(value);
+        speedValue.textContent = `${value.toFixed(1)}x`;
     });
 
-    // Movement pattern button listeners
-    Object.keys(patternButtons).forEach(pattern => {
-        patternButtons[pattern].addEventListener('click', () => {
-            setMovementPattern(pattern);
+    // Spawn direction arrow listeners
+    spawnLeftArrow.addEventListener('click', () => {
+        currentSpawnIndex = (currentSpawnIndex - 1 + spawnOptions.length) % spawnOptions.length;
+        const newValue = spawnOptions[currentSpawnIndex];
+        setSpawnDirection(newValue);
+        spawnValueDisplay.textContent = spawnLabels[newValue];
+    });
 
-            // Update button styles
-            Object.keys(patternButtons).forEach(key => {
-                const btn = patternButtons[key];
-                const isActive = key === pattern;
-                btn.style.background = isActive
-                    ? 'linear-gradient(180deg, #66d96a 0%, #4CAF50 50%, #388E3C 100%)'
-                    : 'linear-gradient(180deg, #888 0%, #666 50%, #555 100%)';
-                btn.style.border = '3px solid ' + (isActive ? '#2E7D32' : '#333');
-                btn.style.boxShadow = '0 3px 0px ' + (isActive ? '#1B5E20' : '#222') + ', 0 4px 10px rgba(0,0,0,0.3)';
-            });
-        });
+    spawnRightArrow.addEventListener('click', () => {
+        currentSpawnIndex = (currentSpawnIndex + 1) % spawnOptions.length;
+        const newValue = spawnOptions[currentSpawnIndex];
+        setSpawnDirection(newValue);
+        spawnValueDisplay.textContent = spawnLabels[newValue];
+    });
+
+    // Movement pattern arrow listeners
+    patternLeftArrow.addEventListener('click', () => {
+        currentPatternIndex = (currentPatternIndex - 1 + patternOptions.length) % patternOptions.length;
+        const newValue = patternOptions[currentPatternIndex];
+        setMovementPattern(newValue);
+        patternValueDisplay.textContent = patternLabels[newValue];
+    });
+
+    patternRightArrow.addEventListener('click', () => {
+        currentPatternIndex = (currentPatternIndex + 1) % patternOptions.length;
+        const newValue = patternOptions[currentPatternIndex];
+        setMovementPattern(newValue);
+        patternValueDisplay.textContent = patternLabels[newValue];
     });
 
     resetButton.addEventListener('click', () => {
@@ -1449,30 +1534,16 @@ export function initUI(container) {
         gravityValue.textContent = `${getGravity().toFixed(1)} m/s²`;
         sizeSlider.value = getBalloonSize().toString();
         sizeValue.textContent = `${getBalloonSize().toFixed(1)}x`;
+        speedSlider.value = getBaseSpeed().toString();
+        speedValue.textContent = `${getBaseSpeed().toFixed(1)}x`;
 
-        // Reset spawn direction buttons
-        const currentDirection = getSpawnDirection();
-        Object.keys(spawnButtons).forEach(key => {
-            const btn = spawnButtons[key];
-            const isActive = key === currentDirection;
-            btn.style.background = isActive
-                ? 'linear-gradient(180deg, #66d96a 0%, #4CAF50 50%, #388E3C 100%)'
-                : 'linear-gradient(180deg, #888 0%, #666 50%, #555 100%)';
-            btn.style.border = '3px solid ' + (isActive ? '#2E7D32' : '#333');
-            btn.style.boxShadow = '0 3px 0px ' + (isActive ? '#1B5E20' : '#222') + ', 0 4px 10px rgba(0,0,0,0.3)';
-        });
+        // Reset spawn direction display
+        currentSpawnIndex = spawnOptions.indexOf(getSpawnDirection());
+        spawnValueDisplay.textContent = spawnLabels[getSpawnDirection()];
 
-        // Reset movement pattern buttons
-        const currentPattern = getMovementPattern();
-        Object.keys(patternButtons).forEach(key => {
-            const btn = patternButtons[key];
-            const isActive = key === currentPattern;
-            btn.style.background = isActive
-                ? 'linear-gradient(180deg, #66d96a 0%, #4CAF50 50%, #388E3C 100%)'
-                : 'linear-gradient(180deg, #888 0%, #666 50%, #555 100%)';
-            btn.style.border = '3px solid ' + (isActive ? '#2E7D32' : '#333');
-            btn.style.boxShadow = '0 3px 0px ' + (isActive ? '#1B5E20' : '#222') + ', 0 4px 10px rgba(0,0,0,0.3)';
-        });
+        // Reset movement pattern display
+        currentPatternIndex = patternOptions.indexOf(getMovementPattern());
+        patternValueDisplay.textContent = patternLabels[getMovementPattern()];
     });
 
     backButton.addEventListener('click', () => {

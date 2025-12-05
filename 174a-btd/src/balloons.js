@@ -1,7 +1,7 @@
 // balloons.js - Balloon creation and management with BTD-style types
 import * as THREE from 'three';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
-import { getBalloonSize, getSpawnDirection, getMovementPattern } from './config.js';
+import { getBalloonSize, getSpawnDirection, getMovementPattern, getBaseSpeed } from './config.js';
 
 const balloons = [];
 const objLoader = new OBJLoader();
@@ -270,7 +270,7 @@ export function spawnBalloon(scene, startY = null, balloonTypeId = 'RED', positi
             scene.add(balloonMesh);
 
             // Movement - speed based on balloon type and spawn direction
-            const baseSpeed = 1.5;
+            const baseSpeed = getBaseSpeed();
             const directionMultiplier = spawnFromLeft ? 1 : -1;
             const velocity = new THREE.Vector3(
                 baseSpeed * balloonType.speedMultiplier * directionMultiplier,
