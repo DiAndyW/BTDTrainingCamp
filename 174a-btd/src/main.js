@@ -8,7 +8,7 @@ import { loadCones, loadWeaponModel } from './objects.js';
 import { spawnBalloon, updateBalloons, getBalloons, damageBalloon, setCallbacks, getActiveBalloonCount, clearAllBalloons, getTotalBalloonsRemaining } from './balloons.js';
 import { shootProjectile, updateProjectiles, getProjectiles, removeProjectile } from './projectiles.js';
 import { initControls } from './controls.js';
-import { updateParticles, createExplosion } from './particles.js';
+import { updateParticles, createExplosion, createSparkles } from './particles.js';
 import { initWaves, startNextWave, checkWaveComplete, getWaveProgress, isWaveActive } from './waves.js';
 import { TrajectoryPreview } from './trajectory.js';
 
@@ -32,7 +32,7 @@ root.appendChild(container);
 // Initialize all modules
 const { scene, camera, renderer, cleanup: sceneCleanup } = initScene(container);
 const ui = initUI(container);
-const { addScore, loseLife, showSpawnWarning, isGameStarted, isGamePaused, showWaveStart, updateBalloonsRemaining } = ui;
+const { addScore, loseLife, showSpawnWarning, isGameStarted, isGamePaused, showWaveStart, updateBalloonsRemaining, updateComboTimer, showGraffitiText } = ui;
 const { checkWallCollision } = initWalls(scene);
 const { updateMovement, cleanup: controlsCleanup } = initControls(
     camera,
@@ -87,8 +87,19 @@ const clock = new THREE.Clock();
 const moveSpeed = 8.0;
 
 // Temp vectors
+// Temp vectors
 const tmpP = new THREE.Vector3();
 const tmpB = new THREE.Vector3();
+
+function getScreenPosition(position, camera) {
+    const vector = position.clone();
+    vector.project(camera);
+
+    const x = (vector.x * 0.5 + 0.5) * container.clientWidth;
+    const y = (-(vector.y * 0.5) + 0.5) * container.clientHeight;
+
+    return { x, y };
+}
 
 // Animation loop
 let animationId;
@@ -103,6 +114,9 @@ function animate() {
         updateProjectiles(scene, dt, gravity);
         updateBalloons(scene, dt, gravity);
         updateParticles(scene, dt);
+
+        // Update combo meter UI
+        updateComboTimer();
 
         // Update trajectory
         trajectoryPreview.update();
@@ -155,7 +169,21 @@ function animate() {
 
                     if (result.popped) {
                         // Award points based on balloon type
-                        addScore(result.points);
+                        const { combo } = addScore(result.points);
+
+                        // High combo effects
+                        if (combo > 1) {
+                            if (result.position) {
+                                // Show Graffiti Text at screen position
+                                const screenPos = getScreenPosition(result.position, camera);
+                                showGraffitiText(combo + "x", screenPos.x, screenPos.y);
+
+                                // Sparkles on every 5th hit
+                                if (combo % 5 === 0) {
+                                    createSparkles(scene, result.position, 0xffd700, 15);
+                                }
+                            }
+                        }
 
                         // Create explosion at pop location
                         if (result.position) {

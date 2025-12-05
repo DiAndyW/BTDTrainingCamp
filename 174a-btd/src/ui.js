@@ -11,6 +11,7 @@ export function initUI(container) {
     let gameStarted = false;
     let gamePaused = false;
     let lastHitTime = 0;
+    const COMBO_WINDOW = 3000; // 3 seconds
     let currentWaveNum = 0;
     let balloonsRemaining = 0;
 
@@ -56,11 +57,11 @@ export function initUI(container) {
             animation: `floatUp ${8 + Math.random() * 4}s linear infinite`,
             animationDelay: delay + 's',
             pointerEvents: 'none',
-            boxShadow: `inset -${size/8}px -${size/8}px ${size/4}px rgba(0,0,0,0.2), inset ${size/10}px ${size/10}px ${size/5}px rgba(255,255,255,0.3)`,
+            boxShadow: `inset -${size / 8}px -${size / 8}px ${size / 4}px rgba(0,0,0,0.2), inset ${size / 10}px ${size / 10}px ${size / 5}px rgba(255,255,255,0.3)`,
         });
         return balloon;
     };
-    
+
     const balloonColors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#a29bfe', '#fd79a8'];
     for (let i = 0; i < 12; i++) {
         const balloon = createFloatingBalloon(
@@ -343,7 +344,7 @@ export function initUI(container) {
                 </div>
                 <div style="text-align: center; background: rgba(0,0,0,0.2); padding: 8px 18px; border-radius: 8px;">
                     <div style="color: #99ff99; font-size: 11px; font-weight: bold; letter-spacing: 1px; font-family: 'Fredoka', sans-serif;">⚡ FIRE RATE</div>
-                    <div style="color: white; font-size: 22px; font-weight: bold; font-family: 'Bangers', sans-serif;">${(1/weapon.fireRate).toFixed(1)}/s</div>
+                    <div style="color: white; font-size: 22px; font-weight: bold; font-family: 'Bangers', sans-serif;">${(1 / weapon.fireRate).toFixed(1)}/s</div>
                 </div>
             </div>
         `;
@@ -393,7 +394,7 @@ export function initUI(container) {
         userSelect: 'none',
         display: 'none',
     });
-    
+
     // Create SVG crosshair
     crosshair.innerHTML = `
         <svg width="40" height="40" viewBox="0 0 40 40" style="filter: drop-shadow(0 0 8px rgba(78, 205, 196, 0.8));">
@@ -545,7 +546,6 @@ export function initUI(container) {
     });
     hudContainer.appendChild(hintDiv);
 
-    // Warning indicators container
     const warningsContainer = document.createElement('div');
     Object.assign(warningsContainer.style, {
         position: 'absolute',
@@ -556,6 +556,43 @@ export function initUI(container) {
         pointerEvents: 'none',
     });
     container.appendChild(warningsContainer);
+
+    // Flash Overlay for high combos
+    const flashOverlay = document.createElement('div');
+    Object.assign(flashOverlay.style, {
+        position: 'absolute',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: '500', // Below menus but above game
+        opacity: '0',
+        transition: 'opacity 0.1s ease-out'
+    });
+    container.appendChild(flashOverlay);
+
+    // Combo Meter (under stats panel)
+    const comboMeterContainer = document.createElement('div');
+    Object.assign(comboMeterContainer.style, {
+        width: '100%',
+        height: '6px',
+        background: 'rgba(0,0,0,0.3)',
+        marginTop: '8px',
+        borderRadius: '3px',
+        overflow: 'hidden',
+        display: 'none' // Hidden by default
+    });
+
+    const comboMeterFill = document.createElement('div');
+    Object.assign(comboMeterFill.style, {
+        width: '100%',
+        height: '100%',
+        background: 'linear-gradient(90deg, #ff9900, #ffcc00)',
+        transition: 'width 0.1s linear'
+    });
+    comboMeterContainer.appendChild(comboMeterFill);
+    statsPanel.appendChild(comboMeterContainer);
 
     // Pause menu - Premium styling
     const pauseMenu = document.createElement('div');
@@ -753,7 +790,7 @@ export function initUI(container) {
         const weapon = getCurrentWeapon();
         weaponDiv.innerHTML = `
             <div style="font-weight: bold; margin-bottom: 3px;">🔫 ${weapon.name}</div>
-            <div style="font-size: 11px; opacity: 0.85;">⚔️ ${weapon.damage}x DMG | ⚡ ${(1/weapon.fireRate).toFixed(1)}/s</div>
+            <div style="font-size: 11px; opacity: 0.85;">⚔️ ${weapon.damage}x DMG | ⚡ ${(1 / weapon.fireRate).toFixed(1)}/s</div>
         `;
     }
 
@@ -770,7 +807,7 @@ export function initUI(container) {
 
     function addScore(points) {
         const now = Date.now();
-        if (now - lastHitTime < 3000) {
+        if (now - lastHitTime < COMBO_WINDOW) {
             combo++;
             multiplier = Math.min(Math.floor(combo / 3) + 1, 5);
         } else {
@@ -786,14 +823,42 @@ export function initUI(container) {
         }
         updateScore();
 
-        // Combo timeout
-        setTimeout(() => {
-            if (Date.now() - lastHitTime >= 3000) {
+        return { combo, multiplier };
+    }
+
+    function updateComboTimer() {
+        if (combo > 1) {
+            const now = Date.now();
+            const timeRemaining = Math.max(0, COMBO_WINDOW - (now - lastHitTime));
+            const pct = (timeRemaining / COMBO_WINDOW) * 100;
+
+            comboMeterContainer.style.display = 'block';
+            comboMeterFill.style.width = pct + '%';
+
+            // Color shift based on time
+            if (pct < 30) comboMeterFill.style.background = '#ff4444';
+            else if (pct < 60) comboMeterFill.style.background = '#ffbb33';
+            else comboMeterFill.style.background = 'linear-gradient(90deg, #ff9900, #ffcc00)';
+
+            if (timeRemaining <= 0) {
                 combo = 0;
                 multiplier = 1;
                 updateScore();
             }
-        }, 3000);
+        } else {
+            comboMeterContainer.style.display = 'none';
+        }
+    }
+
+    function triggerScreenFlash(color = 'white') {
+        flashOverlay.style.transition = 'none';
+        flashOverlay.style.backgroundColor = color;
+        flashOverlay.style.opacity = '0.3';
+
+        requestAnimationFrame(() => {
+            flashOverlay.style.transition = 'opacity 0.4s ease-out';
+            flashOverlay.style.opacity = '0';
+        });
     }
 
     function updateLives() {
@@ -986,6 +1051,67 @@ export function initUI(container) {
         updateWaveDisplay();
     }
 
+    // Graffiti Text Container
+    const graffitiContainer = document.createElement('div');
+    Object.assign(graffitiContainer.style, {
+        position: 'absolute',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        overflow: 'hidden'
+    });
+    container.appendChild(graffitiContainer);
+
+    // ... (rest of UI setup)
+
+    function showGraffitiText(text, x, y) {
+        const el = document.createElement('div');
+        el.textContent = text;
+        const rotation = (Math.random() - 0.5) * 30;
+        const color = ['#ff6b6b', '#4ecdc4', '#ffeaa0', '#ff9ff3'][Math.floor(Math.random() * 4)];
+
+        // Randomize float direction (up or down)
+        const floatDirection = Math.random() > 0.5 ? -1 : 1;
+        const floatDistance = 100 + Math.random() * 50;
+
+        Object.assign(el.style, {
+            position: 'absolute',
+            left: x + 'px',
+            top: y + 'px',
+            transform: `translate(-50%, -50%) rotate(${rotation}deg) scale(0)`,
+            fontSize: '48px',
+            fontFamily: '"Bangers", cursive',
+            color: color,
+            textShadow: '3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000',
+            fontWeight: 'bold',
+            whiteSpace: 'nowrap',
+            zIndex: '800',
+            // Added 'top' to transition for smooth movement
+            transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.27), opacity 0.5s ease-in, top 0.8s ease-out',
+            opacity: '1'
+        });
+
+        graffitiContainer.appendChild(el);
+
+        // Pop in
+        requestAnimationFrame(() => {
+            el.style.transform = `translate(-50%, -50%) rotate(${rotation}deg) scale(1.2)`;
+        });
+
+        // Float and fade
+        setTimeout(() => {
+            el.style.top = (y + (floatDistance * floatDirection)) + 'px';
+            el.style.opacity = '0';
+        }, 100);
+
+        // Cleanup
+        setTimeout(() => {
+            el.remove();
+        }, 800);
+    }
+
     return {
         setScore: (newScore) => { score = newScore; updateScore(); },
         getScore: () => score,
@@ -996,6 +1122,8 @@ export function initUI(container) {
         isGamePaused: () => gamePaused,
         showWaveStart,
         updateBalloonsRemaining,
+        updateComboTimer,
+        showGraffitiText,
         crosshair,
         scoreDiv,
         hintDiv
