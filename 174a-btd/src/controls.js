@@ -1,4 +1,4 @@
-// controls.js - Keyboard and pointer lock controls
+// controls.js - Keyboard and pointer lock controls with auto-fire support
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { getCurrentWeapon } from './weapons.js';
 
@@ -13,6 +13,7 @@ export function initControls(camera, renderer, onShoot) {
     };
 
     let lastShotTime = 0;
+    let isMouseDown = false;
 
     function onKeyDown(event) {
         switch (event.code) {
@@ -60,27 +61,47 @@ export function initControls(camera, renderer, onShoot) {
         }
     }
 
-    function onClick() {
+    function tryShoot() {
+        const currentTime = performance.now() / 1000;
+        const weapon = getCurrentWeapon();
+        const timeSinceLastShot = currentTime - lastShotTime;
+
+        if (timeSinceLastShot >= weapon.fireRate) {
+            onShoot();
+            lastShotTime = currentTime;
+        }
+    }
+
+    function onMouseDown(event) {
+        if (event.button !== 0) return; // Only left click
+        
         if (!controls.isLocked) {
             controls.lock();
         } else {
-            const currentTime = performance.now() / 1000; // Convert to seconds
-            const weapon = getCurrentWeapon();
-            const timeSinceLastShot = currentTime - lastShotTime;
-
-            if (timeSinceLastShot >= weapon.fireRate) {
-                onShoot();
-                lastShotTime = currentTime;
-            }
+            isMouseDown = true;
+            tryShoot(); // Shoot immediately on click
         }
+    }
+
+    function onMouseUp(event) {
+        if (event.button !== 0) return;
+        isMouseDown = false;
     }
 
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
-    renderer.domElement.addEventListener('click', onClick);
+    renderer.domElement.addEventListener('mousedown', onMouseDown);
+    renderer.domElement.addEventListener('mouseup', onMouseUp);
+    // Also listen on document in case mouse leaves canvas while held
+    document.addEventListener('mouseup', onMouseUp);
 
     function updateMovement(dt, moveSpeed, checkWallCollision) {
         if (controls.isLocked) {
+            // Auto-fire when mouse is held down
+            if (isMouseDown) {
+                tryShoot();
+            }
+
             // Store previous position
             const prevPosition = camera.position.clone();
 
@@ -104,7 +125,9 @@ export function initControls(camera, renderer, onShoot) {
         cleanup: () => {
             document.removeEventListener('keydown', onKeyDown);
             document.removeEventListener('keyup', onKeyUp);
-            renderer.domElement.removeEventListener('click', onClick);
+            renderer.domElement.removeEventListener('mousedown', onMouseDown);
+            renderer.domElement.removeEventListener('mouseup', onMouseUp);
+            document.removeEventListener('mouseup', onMouseUp);
         }
     };
 }

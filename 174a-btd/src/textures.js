@@ -1,4 +1,4 @@
-// textures.js - Procedural texture generation
+// textures.js - Cartoonish procedural texture generation
 import * as THREE from 'three';
 
 export function createGroundTexture() {
@@ -7,59 +7,95 @@ export function createGroundTexture() {
     canvas.height = 1024;
     const ctx = canvas.getContext('2d');
 
-    // Base Grass
-    ctx.fillStyle = '#338c1f';
+    // Bright cartoon grass base
+    const gradient = ctx.createLinearGradient(0, 0, 0, 1024);
+    gradient.addColorStop(0, '#4CAF50');
+    gradient.addColorStop(0.5, '#66BB6A');
+    gradient.addColorStop(1, '#4CAF50');
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 1024, 1024);
 
-    // Add noise for grass texture
-    for (let i = 0; i < 50000; i++) {
+    // Add stylized grass patches
+    for (let i = 0; i < 2000; i++) {
         const x = Math.random() * 1024;
         const y = Math.random() * 1024;
-        const w = Math.random() * 3 + 1;
-        const h = Math.random() * 3 + 1;
-        ctx.fillStyle = Math.random() > 0.5 ? '#2a7a18' : '#3e9e25';
-        ctx.fillRect(x, y, w, h);
+        const colors = ['#43A047', '#2E7D32', '#81C784', '#A5D6A7'];
+        ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+        
+        // Draw grass blade
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - 3, y - 10 - Math.random() * 10);
+        ctx.lineTo(x + 3, y - 10 - Math.random() * 10);
+        ctx.closePath();
+        ctx.fill();
     }
 
-    // Draw Track (Simple S-curve or straight line matching balloon path)
-    // Balloons spawn at x=-5, z=-10 and move x+=1.5, z+=0
-    // So the path is a straight line along Z=-10?
-    // Wait, let's check balloon movement in balloons.js
-    // velocity = (1.5, 0.1, 0)
-    // start: (-5, y, -10)
-    // So it's a straight line from left to right at z=-10.
+    // Draw cartoon-style path (balloon track)
+    const pathY = 410;
     
-    // Let's draw a dirt path along that line
-    // Map world coordinates to texture coordinates
-    // Plane is 100x100. Center is (0,0).
-    // Texture covers -50 to 50 in both X and Z.
-    // z=-10 corresponds to...
-    // 0 -> 512 (center)
-    // -50 -> 0
-    // 50 -> 1024
-    // z=-10 -> 512 + (-10/100 * 1024) = 512 - 102.4 = 409.6 ~ 410
-    
-    const pathY = 410; // In texture space (which maps to Z in world)
-    
+    // Path base
     ctx.beginPath();
     ctx.moveTo(0, pathY);
     ctx.lineTo(1024, pathY);
-    ctx.lineWidth = 60; // Width of path
-    ctx.strokeStyle = '#8B4513'; // SaddleBrown
+    ctx.lineWidth = 70;
+    ctx.strokeStyle = '#D4A574'; // Light brown
     ctx.stroke();
 
-    // Add noise to path
-    for (let i = 0; i < 5000; i++) {
+    // Path border (darker)
+    ctx.beginPath();
+    ctx.moveTo(0, pathY - 35);
+    ctx.lineTo(1024, pathY - 35);
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = '#8B6914';
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, pathY + 35);
+    ctx.lineTo(1024, pathY + 35);
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = '#8B6914';
+    ctx.stroke();
+
+    // Add pebbles to path
+    for (let i = 0; i < 500; i++) {
         const x = Math.random() * 1024;
-        const y = pathY - 30 + Math.random() * 60;
-        ctx.fillStyle = Math.random() > 0.5 ? '#A0522D' : '#6F4E37';
-        ctx.fillRect(x, y, 4, 4);
+        const y = pathY - 25 + Math.random() * 50;
+        const size = 3 + Math.random() * 5;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fillStyle = Math.random() > 0.5 ? '#C4A484' : '#B8956E';
+        ctx.fill();
+    }
+
+    // Add flowers scattered on grass
+    const flowerColors = ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#FF9EAA'];
+    for (let i = 0; i < 300; i++) {
+        const x = Math.random() * 1024;
+        const y = Math.random() * 1024;
+        
+        // Skip if on path
+        if (y > pathY - 50 && y < pathY + 50) continue;
+        
+        const color = flowerColors[Math.floor(Math.random() * flowerColors.length)];
+        const size = 4 + Math.random() * 4;
+        
+        // Draw simple flower
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        
+        // Flower center
+        ctx.beginPath();
+        ctx.arc(x, y, size * 0.4, 0, Math.PI * 2);
+        ctx.fillStyle = '#FFD700';
+        ctx.fill();
     }
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
-    // texture.repeat.set(1, 1); 
     
     return texture;
 }

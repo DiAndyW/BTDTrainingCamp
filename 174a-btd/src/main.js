@@ -1,14 +1,15 @@
-// src/main.js - Correct working collision version
+// src/main.js - BTD-style game with waves and balloon types
 import './index.css';
 import * as THREE from 'three';
 import { initScene } from './scene.js';
 import { initUI } from './ui.js';
 import { initWalls } from './walls.js';
 import { loadCones, loadWeaponModel } from './objects.js';
-import { spawnBalloon, updateBalloons, getBalloons, removeBalloon, setCallbacks } from './balloons.js';
+import { spawnBalloon, updateBalloons, getBalloons, damageBalloon, setCallbacks, getActiveBalloonCount, clearAllBalloons, getTotalBalloonsRemaining } from './balloons.js';
 import { shootProjectile, updateProjectiles, getProjectiles, removeProjectile } from './projectiles.js';
 import { initControls } from './controls.js';
 import { updateParticles, createExplosion } from './particles.js';
+import { initWaves, startNextWave, checkWaveComplete, getWaveProgress, isWaveActive } from './waves.js';
 
 // Root container
 const root = document.getElementById('root');
@@ -30,7 +31,7 @@ root.appendChild(container);
 // Initialize all modules
 const { scene, camera, renderer, cleanup: sceneCleanup } = initScene(container);
 const ui = initUI(container);
-const { addScore, loseLife, showSpawnWarning, isGameStarted, isGamePaused } = ui;
+const { addScore, loseLife, showSpawnWarning, isGameStarted, isGamePaused, showWaveStart, updateBalloonsRemaining } = ui;
 const { checkWallCollision } = initWalls(scene);
 const { updateMovement, cleanup: controlsCleanup } = initControls(
     camera,
@@ -38,10 +39,30 @@ const { updateMovement, cleanup: controlsCleanup } = initControls(
     () => shootProjectile(scene, camera)
 );
 
-// Callbacks
+// Initialize wave system
+initWaves(
+    scene,
+    // On wave start
+    (waveNum, description, totalBalloons) => {
+        showWaveStart(waveNum, description);
+        updateBalloonsRemaining(totalBalloons);
+    },
+    // On wave complete - auto-start next wave after delay
+    (waveNum) => {
+        setTimeout(() => {
+            startNextWave();
+        }, 2000); // 2 second break between waves
+    }
+);
+
+// Callbacks for balloon events
 setCallbacks(
-    () => loseLife(),
-    (x, y) => showSpawnWarning(x, y)
+    // On escape - damage based on balloon value
+    (damage) => loseLife(damage),
+    // On spawn warning
+    (x, y) => showSpawnWarning(x, y),
+    // On pop - create explosion
+    (position, color) => createExplosion(scene, position, color)
 );
 
 // Load 3D objects
@@ -50,10 +71,10 @@ loadCones(scene);
 // Expose camera for weapon loading
 window.gameCamera = camera;
 
-// Start-game handler
+// Start-game handler - initialize wave system
 window.onGameStart = () => {
-    spawnBalloon(scene, 2);
-    spawnBalloon(scene, 4);
+    // Auto-start first wave
+    startNextWave();
 };
 
 // Physics
@@ -79,12 +100,18 @@ function animate() {
         updateBalloons(scene, dt, gravity);
         updateParticles(scene, dt);
 
+        // Update balloon count in UI - show total pops remaining
+        const totalRemaining = getTotalBalloonsRemaining();
+        updateBalloonsRemaining(totalRemaining);
+
         const balloons = getBalloons();
         const projectiles = getProjectiles();
 
-        // Correct working collision
+        // Collision detection with damage system
         for (let i = balloons.length - 1; i >= 0; i--) {
             const b = balloons[i];
+            if (b.isDying) continue; // Skip dying balloons
+            
             b.mesh.getWorldPosition(tmpB);
 
             // Balloon radius fallback
@@ -109,22 +136,32 @@ function animate() {
                 const hitDistance = bRadius + pRadius;
 
                 if (dist < hitDistance) {
-                    // REMOVE BY INDEX (your original logic)
-                    removeBalloon(scene, i);
+                    // Get damage from projectile
+                    const damage = p.damage || 1;
+                    
+                    // Damage the balloon (may pop it and spawn children)
+                    const result = damageBalloon(scene, i, damage);
+                    
+                    // Remove projectile
                     removeProjectile(scene, j);
 
-                    // Explosion effect
-                    createExplosion(scene, tmpB, 0xff0000);
-
-                    // Use damage for score calculation
-                    const damageMultiplier = p.damage || 1;
-                    addScore(Math.round(10 * damageMultiplier));
-                    spawnBalloon(scene);
+                    if (result.popped) {
+                        // Award points based on balloon type
+                        addScore(result.points);
+                        
+                        // Create explosion at pop location
+                        if (result.position) {
+                            createExplosion(scene, result.position, result.color);
+                        }
+                    }
 
                     break;
                 }
             }
         }
+
+        // Check for wave completion
+        checkWaveComplete();
     }
 
     renderer.render(scene, camera);
