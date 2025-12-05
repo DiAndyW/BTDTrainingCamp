@@ -71,6 +71,37 @@ export const WEAPONS = {
             emissive: 0x0088FF,
             emissiveIntensity: 0.3
         }
+    },
+    RAY_GUN: {
+        id: 'RAY_GUN',
+        name: 'Ray Gun',
+        damage: 0.2,
+        fireRate: 0,
+        projectileSpeed: 300,
+        projectileColor: 0xa181eb,
+        projectileSize: 0.1,
+        description: 'Powerful plasma shots with high damage.',
+        modelPath: '../models/hand.obj',
+        modelScale: { x: 0.1, y: 0.1, z: 0.1 },
+        modelPosition: { x: 0.15, y: -0.3, z: -0.62 },
+        modelRotation: { x: 0, y: Math.PI * 3 / 2, z: 0 },
+        modelMaterial: { 
+            color: 0xa181eb, 
+            type: 'standard',
+            metalness: 2,
+            roughness: 0.2,
+            emissive: 0x00ff44,
+            emissiveIntensity: 0.5
+        },
+        projectileType: 'sphere',
+        projectileMaterial: {
+            color: 0xa181eb,
+            type: 'standard',
+            emissive: 0xa181eb,
+            emissiveIntensity: 1.0,
+            transparent: true,
+            opacity: 1
+        }
     }
 };
 

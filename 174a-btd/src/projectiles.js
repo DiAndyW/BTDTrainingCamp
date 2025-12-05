@@ -97,7 +97,28 @@ export function shootProjectile(scene, camera) {
         // Standard sphere projectile
         const velocity = dir.clone().multiplyScalar(weapon.projectileSpeed);
         const geom = new THREE.SphereGeometry(weapon.projectileSize, 16, 16);
-        const mat = new THREE.MeshPhongMaterial({ color: weapon.projectileColor });
+        
+        // Check for custom projectile material (for Ray Gun glow effect)
+        let mat;
+        if (weapon.projectileMaterial && weapon.projectileMaterial.type === 'standard') {
+            const matConfig = {
+                color: weapon.projectileMaterial.color,
+                metalness: weapon.projectileMaterial.metalness || 0,
+                roughness: weapon.projectileMaterial.roughness || 0.5,
+            };
+            if (weapon.projectileMaterial.emissive) {
+                matConfig.emissive = weapon.projectileMaterial.emissive;
+                matConfig.emissiveIntensity = weapon.projectileMaterial.emissiveIntensity || 0;
+            }
+            if (weapon.projectileMaterial.transparent) {
+                matConfig.transparent = true;
+                matConfig.opacity = weapon.projectileMaterial.opacity || 1;
+            }
+            mat = new THREE.MeshStandardMaterial(matConfig);
+        } else {
+            mat = new THREE.MeshPhongMaterial({ color: weapon.projectileColor });
+        }
+        
         const bullet = new THREE.Mesh(geom, mat);
         bullet.castShadow = true;
         bullet.position.copy(origin);
