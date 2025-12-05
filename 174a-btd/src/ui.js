@@ -211,7 +211,7 @@ export function initUI(container) {
 
     // Settings button - Premium styling
     const settingsButton = document.createElement('button');
-    settingsButton.innerHTML = '⚙️ SETTINGS';
+    settingsButton.innerHTML = 'SETTINGS';
     Object.assign(settingsButton.style, {
         fontSize: '20px',
         padding: '12px 40px',
@@ -289,9 +289,9 @@ export function initUI(container) {
 
     const controlsInfo = document.createElement('div');
     controlsInfo.innerHTML = `
-        <span style="opacity: 0.9;">🖱️ Hold mouse to shoot</span>
+        <span style="opacity: 0.9;">Hold mouse to shoot</span>
         <span style="margin: 0 15px; opacity: 0.5;">•</span>
-        <span style="opacity: 0.9;">🎈 Pop all the balloons!</span>
+        <span style="opacity: 0.9;">Pop all the balloons!</span>
     `;
     Object.assign(controlsInfo.style, {
         fontSize: '15px',
@@ -333,7 +333,7 @@ export function initUI(container) {
     });
 
     const weaponTitle = document.createElement('div');
-    weaponTitle.textContent = '🎯 SELECT WEAPON';
+    weaponTitle.textContent = 'SELECT WEAPON';
     Object.assign(weaponTitle.style, {
         fontSize: '32px',
         color: '#ffeaa0',
@@ -396,11 +396,11 @@ export function initUI(container) {
             </div>
             <div style="display: flex; justify-content: space-around; margin-top: 15px; padding-top: 12px; border-top: 2px solid rgba(255,255,255,0.15);">
                 <div style="text-align: center; background: rgba(0,0,0,0.2); padding: 8px 18px; border-radius: 8px;">
-                    <div style="color: #ff9999; font-size: 11px; font-weight: bold; letter-spacing: 1px; font-family: 'Fredoka', sans-serif;">⚔️ DAMAGE</div>
+                    <div style="color: #ff9999; font-size: 11px; font-weight: bold; letter-spacing: 1px; font-family: 'Fredoka', sans-serif;">DAMAGE</div>
                     <div style="color: white; font-size: 22px; font-weight: bold; font-family: 'Bangers', sans-serif;">${weapon.damage}x</div>
                 </div>
                 <div style="text-align: center; background: rgba(0,0,0,0.2); padding: 8px 18px; border-radius: 8px;">
-                    <div style="color: #99ff99; font-size: 11px; font-weight: bold; letter-spacing: 1px; font-family: 'Fredoka', sans-serif;">⚡ FIRE RATE</div>
+                    <div style="color: #99ff99; font-size: 11px; font-weight: bold; letter-spacing: 1px; font-family: 'Fredoka', sans-serif;">FIRE RATE</div>
                     <div style="color: white; font-size: 22px; font-weight: bold; font-family: 'Bangers', sans-serif;">${(1 / weapon.fireRate).toFixed(1)}/s</div>
                 </div>
             </div>
@@ -436,6 +436,36 @@ export function initUI(container) {
     });
 
     weaponMenu.appendChild(weaponGrid);
+
+    // Back button for weapon menu
+    const weaponBackButton = document.createElement('button');
+    weaponBackButton.innerHTML = '◀ Back';
+    Object.assign(weaponBackButton.style, {
+        fontSize: '18px',
+        padding: '12px 40px',
+        background: 'linear-gradient(180deg, #66d96a 0%, #4CAF50 50%, #388E3C 100%)',
+        color: 'white',
+        border: '4px solid #2E7D32',
+        borderRadius: '50px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        boxShadow: '0 4px 0px #1B5E20, 0 6px 15px rgba(0,0,0,0.3)',
+        transition: 'all 0.15s ease',
+        fontFamily: '"Fredoka", "Arial Black", sans-serif',
+        letterSpacing: '2px',
+        textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+        marginTop: '25px',
+    });
+    weaponBackButton.onmouseover = () => {
+        weaponBackButton.style.transform = 'translateY(-2px)';
+        weaponBackButton.style.boxShadow = '0 6px 0px #1B5E20, 0 8px 20px rgba(0,0,0,0.4)';
+    };
+    weaponBackButton.onmouseout = () => {
+        weaponBackButton.style.transform = 'translateY(0)';
+        weaponBackButton.style.boxShadow = '0 4px 0px #1B5E20, 0 6px 15px rgba(0,0,0,0.3)';
+    };
+    weaponMenu.appendChild(weaponBackButton);
+
     container.appendChild(weaponMenu);
 
     // Settings Menu - Premium BTD style
@@ -610,7 +640,7 @@ export function initUI(container) {
 
     // Back button
     const backButton = document.createElement('button');
-    backButton.textContent = '◀️ Back';
+    backButton.innerHTML = '◀ Back';
     Object.assign(backButton.style, {
         fontSize: '16px',
         padding: '12px 30px',
@@ -623,6 +653,8 @@ export function initUI(container) {
         boxShadow: '0 4px 0px #1B5E20, 0 6px 15px rgba(0,0,0,0.3)',
         fontFamily: '"Fredoka", sans-serif',
         transition: 'all 0.15s ease',
+        letterSpacing: '2px',
+        textShadow: '0 2px 4px rgba(0,0,0,0.3)',
     });
     backButton.onmouseover = () => {
         backButton.style.transform = 'translateY(-2px)';
@@ -1212,6 +1244,12 @@ export function initUI(container) {
 
     playAgainButton.addEventListener('click', () => {
         location.reload();
+    });
+
+    // Weapon menu back button
+    weaponBackButton.addEventListener('click', () => {
+        weaponMenu.style.display = 'none';
+        mainMenu.style.display = 'flex';
     });
 
     // Settings event listeners

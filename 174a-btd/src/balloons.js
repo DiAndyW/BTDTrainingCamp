@@ -119,7 +119,7 @@ function createBalloonMaterial(balloonType) {
 }
 
 // HP Bar helper
-function createHealthBar(health, maxHealth) {
+function createHealthBar(health, maxHealth, balloonSize = 1.0) {
     const canvas = document.createElement('canvas');
     canvas.width = 64;
     canvas.height = 8;
@@ -139,8 +139,8 @@ function createHealthBar(health, maxHealth) {
     const material = new THREE.SpriteMaterial({ map: texture });
     const sprite = new THREE.Sprite(material);
 
-    sprite.scale.set(1.5, 0.2, 1);
-    sprite.position.set(0, 1.8, 0); // Above balloon
+    sprite.scale.set(1.5 * balloonSize, 0.2 * balloonSize, 1);
+    sprite.position.set(0, 1.8 * balloonSize, 0); // Above balloon, scaled by size
 
     return sprite;
 }
@@ -202,12 +202,12 @@ function createBalloonMesh(balloonType, callback) {
     objLoader.load(
         '../models/string.obj',
         function (stringObject) {
-
-            stringObject.scale.set(0.7, 0.7, 0.7);
-            stringObject.scale.y = 1.2; // Stretch string vertically
+            const sizeMultiplier = getBalloonSize();
+            stringObject.scale.set(0.7 * sizeMultiplier, 0.7 * sizeMultiplier, 0.7 * sizeMultiplier);
+            stringObject.scale.y = 1.2 * sizeMultiplier; // Stretch string vertically
 
             // After centering balloon, string must be repositioned
-            stringObject.position.set(0, -2, 0);
+            stringObject.position.set(0, -2 * sizeMultiplier, 0);
 
             stringObject.traverse((child) => {
                 if (child.isMesh) {
@@ -250,7 +250,8 @@ export function spawnBalloon(scene, startY = null, balloonTypeId = 'RED', positi
             balloonMesh.position.set(startX, actualY, startZ);
 
             // HP Bar (always show for visibility)
-            const hpBar = createHealthBar(balloonType.health, balloonType.health);
+            const balloonSize = getBalloonSize();
+            const hpBar = createHealthBar(balloonType.health, balloonType.health, balloonSize);
             balloonMesh.add(hpBar);
 
             scene.add(balloonMesh);
