@@ -10,6 +10,7 @@ import { shootProjectile, updateProjectiles, getProjectiles, removeProjectile } 
 import { initControls } from './controls.js';
 import { updateParticles, createExplosion } from './particles.js';
 import { initWaves, startNextWave, checkWaveComplete, getWaveProgress, isWaveActive } from './waves.js';
+import { TrajectoryPreview } from './trajectory.js';
 
 // Root container
 const root = document.getElementById('root');
@@ -38,6 +39,9 @@ const { updateMovement, cleanup: controlsCleanup } = initControls(
     renderer,
     () => shootProjectile(scene, camera)
 );
+
+// Initialize trajectory preview
+const trajectoryPreview = new TrajectoryPreview(scene, camera);
 
 // Initialize wave system
 initWaves(
@@ -100,6 +104,9 @@ function animate() {
         updateBalloons(scene, dt, gravity);
         updateParticles(scene, dt);
 
+        // Update trajectory
+        trajectoryPreview.update();
+
         // Update balloon count in UI - show total pops remaining
         const totalRemaining = getTotalBalloonsRemaining();
         updateBalloonsRemaining(totalRemaining);
@@ -111,7 +118,7 @@ function animate() {
         for (let i = balloons.length - 1; i >= 0; i--) {
             const b = balloons[i];
             if (b.isDying) continue; // Skip dying balloons
-            
+
             // Use balloon object position instead of full group (excludes string)
             b.balloonObject.getWorldPosition(tmpB);
 
@@ -139,17 +146,17 @@ function animate() {
                 if (dist < hitDistance) {
                     // Get damage from projectile
                     const damage = p.damage || 1;
-                    
+
                     // Damage the balloon (may pop it and spawn children)
                     const result = damageBalloon(scene, i, damage);
-                    
+
                     // Remove projectile
                     removeProjectile(scene, j);
 
                     if (result.popped) {
                         // Award points based on balloon type
                         addScore(result.points);
-                        
+
                         // Create explosion at pop location
                         if (result.position) {
                             createExplosion(scene, result.position, result.color);

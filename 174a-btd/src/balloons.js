@@ -8,6 +8,13 @@ let onBalloonEscape = null;
 let onBalloonSpawn = null;
 let onBalloonPop = null;
 
+const PATTERNS = {
+    NORMAL: 'NORMAL',
+    ZIGZAG: 'ZIGZAG',
+    SINE: 'SINE',
+    SPIRAL: 'SPIRAL'
+};
+
 // Balloon type definitions (BTD classic hierarchy)
 export const BALLOON_TYPES = {
     RED: {
@@ -97,7 +104,7 @@ function createBalloonMaterial(balloonType) {
     const material = new THREE.MeshToonMaterial({
         color: balloonType.color,
     });
-    
+
     // For special balloons like Lead, add metallic sheen
     if (balloonType.metalness && balloonType.metalness > 0.5) {
         return new THREE.MeshStandardMaterial({
@@ -106,8 +113,54 @@ function createBalloonMaterial(balloonType) {
             metalness: 0.9,
         });
     }
-    
+
     return material;
+}
+
+// HP Bar helper
+function createHealthBar(health, maxHealth) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 8;
+    const ctx = canvas.getContext('2d');
+
+    // Background
+    ctx.fillStyle = '#444444';
+    ctx.fillRect(0, 0, 64, 8);
+
+    // Health fill - green to red
+    const ratio = health / maxHealth;
+    const hue = ratio * 120; // 0=red, 120=green
+    ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+    ctx.fillRect(1, 1, 62 * ratio, 6);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({ map: texture });
+    const sprite = new THREE.Sprite(material);
+
+    sprite.scale.set(1.5, 0.2, 1);
+    sprite.position.set(0, 1.8, 0); // Above balloon
+
+    return sprite;
+}
+
+function updateHealthBar(sprite, health, maxHealth) {
+    if (!sprite) return;
+
+    const canvas = sprite.material.map.image;
+    const ctx = canvas.getContext('2d');
+
+    // Background
+    ctx.fillStyle = '#444444';
+    ctx.fillRect(0, 0, 64, 8);
+
+    // Health fill
+    const ratio = Math.max(0, health / maxHealth);
+    const hue = ratio * 120;
+    ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+    ctx.fillRect(1, 1, 62 * ratio, 6);
+
+    sprite.material.map.needsUpdate = true;
 }
 
 function createBalloonMesh(balloonType, callback) {
@@ -185,24 +238,33 @@ export function spawnBalloon(scene, startY = null, balloonTypeId = 'RED', positi
 
     // Spawn after warning delay (instant if spawned from pop)
     const delay = position !== null ? 0 : 1500;
-    
+
     setTimeout(() => {
         createBalloonMesh(balloonType, (balloonMesh, balloonObject) => {
             // Start position
             const startX = position !== null ? position.x : -5;
             const startZ = position !== null ? position.z : -10;
             const actualY = position !== null ? position.y : yPos;
-            
+
             balloonMesh.position.set(startX, actualY, startZ);
+
+            // HP Bar (always show for visibility)
+            const hpBar = createHealthBar(balloonType.health, balloonType.health);
+            balloonMesh.add(hpBar);
+
             scene.add(balloonMesh);
 
             // Movement - speed based on balloon type
             const baseSpeed = 1.5;
             const velocity = new THREE.Vector3(
-                baseSpeed * balloonType.speedMultiplier, 
-                0.1, 
+                baseSpeed * balloonType.speedMultiplier,
+                0.1,
                 0
             );
+
+            // Assign random pattern if not just moving straight
+            const patterns = Object.values(PATTERNS);
+            const pattern = position !== null ? PATTERNS.NORMAL : patterns[Math.floor(Math.random() * patterns.length)];
 
             balloons.push({
                 mesh: balloonMesh,
@@ -211,11 +273,20 @@ export function spawnBalloon(scene, startY = null, balloonTypeId = 'RED', positi
                 radius: 1.3,
                 time: Math.random() * Math.PI * 2,
                 type: balloonType,
-                health: balloonType.health
+                health: balloonType.health,
+                maxHealth: balloonType.health,
+                hpBar: hpBar,
+                pattern: pattern,
+                patternState: {
+                    baseY: actualY, // Maintain general height
+                    time: Math.random() * 10,
+                    amp: 1 + Math.random(),
+                    freq: 1 + Math.random()
+                }
             });
         });
     }, delay);
-    
+
     return balloonType;
 }
 
@@ -224,13 +295,13 @@ export function damageBalloon(scene, index, damage = 1) {
     if (!b || b.isDying) return { popped: false, points: 0, childrenSpawned: [] };
 
     b.health -= damage;
-    
+
     if (b.health <= 0) {
         // Balloon is popped
         const position = b.mesh.position.clone();
         const points = b.type.points;
         const childrenSpawned = [];
-        
+
         // Spawn children balloons
         if (b.type.children && b.type.children.length > 0) {
             b.type.children.forEach((childTypeId, idx) => {
@@ -245,7 +316,7 @@ export function damageBalloon(scene, index, damage = 1) {
                 childrenSpawned.push(childTypeId);
             });
         }
-        
+
         // Remove the popped balloon
         scene.remove(b.mesh);
         b.mesh.traverse((child) => {
@@ -255,16 +326,20 @@ export function damageBalloon(scene, index, damage = 1) {
             }
         });
         balloons.splice(index, 1);
-        
+
         // Callback for pop effects
         if (onBalloonPop) {
             onBalloonPop(position, b.type.color);
         }
-        
+
         return { popped: true, points, childrenSpawned, position, color: b.type.color };
     }
-    
+
     // Balloon damaged but not popped - flash effect
+    if (b.hpBar) {
+        updateHealthBar(b.hpBar, b.health, b.maxHealth);
+    }
+
     b.mesh.traverse((child) => {
         if (child.isMesh && child.material) {
             const originalColor = b.type.color;
@@ -278,7 +353,7 @@ export function damageBalloon(scene, index, damage = 1) {
             }, 100);
         }
     });
-    
+
     return { popped: false, points: 0, childrenSpawned: [] };
 }
 
@@ -313,10 +388,39 @@ export function updateBalloons(scene, dt, gravity) {
         // Light gravity
         b.velocity.addScaledVector(gravity, dt * 0.05);
 
-        // Apply movement
+        // Apply movement pattern
+        const patternTime = dt * 2.0;
+        b.patternState.time += patternTime;
+
+        // Base X/Z movement
         b.mesh.position.x += b.velocity.x * dt;
-        b.mesh.position.y += (b.velocity.y + arcOffset) * dt;
         b.mesh.position.z += b.velocity.z * dt;
+
+        // Y Movement (Gravity + Pattern)
+        // Gravity
+        b.velocity.addScaledVector(gravity, dt * 0.05);
+
+        let patternY = 0;
+        let patternZ = 0;
+
+        switch (b.pattern) {
+            case PATTERNS.SINE:
+                patternY = Math.sin(b.patternState.time * b.patternState.freq) * b.patternState.amp * dt;
+                break;
+            case PATTERNS.ZIGZAG:
+                patternY = (Math.sin(b.patternState.time * 3) > 0 ? 1 : -1) * dt * 2;
+                break;
+            case PATTERNS.SPIRAL:
+                patternY = Math.cos(b.patternState.time * 2) * dt * 2;
+                patternZ = Math.sin(b.patternState.time * 2) * dt * 2;
+                break;
+            default: // NORMAL
+                patternY = arcOffset * dt; // Original slight bobble
+                break;
+        }
+
+        b.mesh.position.y += b.velocity.y * dt + patternY;
+        b.mesh.position.z += patternZ;
 
         const x = b.mesh.position.x;
         const y = b.mesh.position.y;
@@ -393,7 +497,7 @@ export function getTotalBalloonsRemaining() {
 function countBalloonLayers(typeId) {
     const type = BALLOON_TYPES[typeId];
     if (!type) return 1;
-    
+
     let count = 1; // This balloon itself
     for (const childType of type.children) {
         count += countBalloonLayers(childType);
