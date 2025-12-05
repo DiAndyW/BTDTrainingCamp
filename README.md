@@ -2,7 +2,7 @@
 
 A 3D first-person shooter (FPS) physics-based aim trainer inspired by the classic Balloon Tower Defense game, built with Three.js and vanilla JavaScript.
 
-**Team Members:** [Add your team member names here]
+**Team Members:** Andy Wang, Charlton Shih, David Han
 
 ---
 
