@@ -20,18 +20,18 @@ class AudioManager {
         this.initialized = true;
 
         // Load weapon sounds
-        this.loadSound('hand_gun', '/sounds/gun shot.mp3');
-        this.loadSound('machine_gun', '/sounds/machine gun.mp3');
-        this.loadSound('ice_knives', '/sounds/knife throw.mp3');
-        this.loadSound('ray_gun', '/sounds/bzz.mp3');
+        this.loadSound('hand_gun', `${import.meta.env.BASE_URL}sounds/gun shot.mp3`);
+        this.loadSound('machine_gun', `${import.meta.env.BASE_URL}sounds/machine gun.mp3`);
+        this.loadSound('ice_knives', `${import.meta.env.BASE_URL}sounds/knife throw.mp3`);
+        this.loadSound('ray_gun', `${import.meta.env.BASE_URL}sounds/bzz.mp3`);
 
         // Load other sounds
-        this.loadSound('balloon_pop', '/sounds/balloon pop.mp3');
-        this.loadSound('lose_life', '/sounds/lose life.mp3');
-        this.loadSound('low_lives', '/sounds/low health.mp3');
-        this.loadSound('game_over', '/sounds/loss screen.mp3');
-        this.loadSound('new_wave', '/sounds/new round.mp3');
-        this.loadSound('high_combo', '/sounds/wow.mp3');
+        this.loadSound('balloon_pop', `${import.meta.env.BASE_URL}sounds/balloon pop.mp3`);
+        this.loadSound('lose_life', `${import.meta.env.BASE_URL}sounds/lose life.mp3`);
+        this.loadSound('low_lives', `${import.meta.env.BASE_URL}sounds/low health.mp3`);
+        this.loadSound('game_over', `${import.meta.env.BASE_URL}sounds/loss screen.mp3`);
+        this.loadSound('new_wave', `${import.meta.env.BASE_URL}sounds/new round.mp3`);
+        this.loadSound('high_combo', `${import.meta.env.BASE_URL}sounds/wow.mp3`);
     }
 
     loadSound(name, path) {

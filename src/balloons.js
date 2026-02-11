@@ -173,7 +173,7 @@ function createBalloonMesh(balloonType, callback) {
 
     // Load balloon body
     objLoader.load(
-        '../models/balloon.obj',
+        `${import.meta.env.BASE_URL}models/balloon.obj`,
         function (balloonObject) {
             const sizeMultiplier = getBalloonSize();
             balloonObject.scale.set(0.8 * sizeMultiplier, 0.8 * sizeMultiplier, 0.8 * sizeMultiplier);
@@ -200,7 +200,7 @@ function createBalloonMesh(balloonType, callback) {
 
     // Load string
     objLoader.load(
-        '../models/string.obj',
+        `${import.meta.env.BASE_URL}models/string.obj`,
         function (stringObject) {
             const sizeMultiplier = getBalloonSize();
             stringObject.scale.set(0.7 * sizeMultiplier, 0.7 * sizeMultiplier, 0.7 * sizeMultiplier);

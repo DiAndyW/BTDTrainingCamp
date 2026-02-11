@@ -64,7 +64,7 @@ export function shootProjectile(scene, camera) {
             }
 
             objLoader.load(
-                weapon.projectileModel,
+                `${import.meta.env.BASE_URL}${weapon.projectileModel}`,
                 function (object) {
                     object.scale.set(
                         weapon.projectileModelScale.x,

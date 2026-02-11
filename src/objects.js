@@ -23,7 +23,7 @@ export function loadCones(scene) {
 
     conePositions.forEach((pos, index) => {
         objLoader.load(
-            '../models/cone.obj',
+            `${import.meta.env.BASE_URL}models/cone.obj`,
             function (object) {
                 // Apply transformations
                 object.scale.set(0.5, 0.5, 0.5);
@@ -115,14 +115,14 @@ export function loadWeaponModel(camera, weaponConfig) {
     if (weaponConfig.useBlenderMaterials && weaponConfig.mtlPath) {
         const mtlLoader = new MTLLoader();
         mtlLoader.load(
-            weaponConfig.mtlPath,
+            `${import.meta.env.BASE_URL}${weaponConfig.mtlPath}`,
             function (materials) {
                 materials.preload();
 
                 const objLoader = new OBJLoader();
                 objLoader.setMaterials(materials);
                 objLoader.load(
-                    weaponConfig.modelPath,
+                    `${import.meta.env.BASE_URL}${weaponConfig.modelPath}`,
                     function (object) {
                         setupModel(object);
                     },
@@ -168,7 +168,7 @@ export function loadWeaponModel(camera, weaponConfig) {
 
         const objLoader = new OBJLoader();
         objLoader.load(
-            weaponConfig.modelPath,
+            `${import.meta.env.BASE_URL}${weaponConfig.modelPath}`,
             function (object) {
                 setupModel(object, material);
             },
@@ -191,7 +191,7 @@ export function loadPlayerHand(camera) {
     });
 
     objLoader.load(
-        '../models/hand.obj',
+        `${import.meta.env.BASE_URL}models/hand.obj`,
         function (object) {
             // Scale and position for first-person view
             object.scale.set(0.1, 0.1, 0.1);
