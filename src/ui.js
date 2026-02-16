@@ -3,6 +3,88 @@ import { WEAPONS, setCurrentWeapon, getCurrentWeapon } from './weapons.js';
 import { loadWeaponModel } from './objects.js';
 import { getGravity, setGravity, getBalloonSize, setBalloonSize, getSpawnDirection, setSpawnDirection, getMovementPattern, setMovementPattern, getBaseSpeed, setBaseSpeed, resetConfig } from './config.js';
 import { audioManager } from './audio.js';
+import { submitScore, fetchLeaderboard } from './supabase.js';
+
+function createLeaderboardTable(scores) {
+    const wrapper = document.createElement('div');
+    Object.assign(wrapper.style, {
+        width: '100%',
+        maxWidth: '500px',
+        margin: '15px auto 0',
+    });
+
+    if (!scores || scores.length === 0) {
+        const empty = document.createElement('div');
+        empty.textContent = 'No scores yet. Be the first!';
+        Object.assign(empty.style, {
+            color: '#e8d5a3',
+            fontSize: '16px',
+            textAlign: 'center',
+            padding: '20px',
+            fontFamily: '"Fredoka", sans-serif',
+        });
+        wrapper.appendChild(empty);
+        return wrapper;
+    }
+
+    const table = document.createElement('table');
+    Object.assign(table.style, {
+        width: '100%',
+        borderCollapse: 'collapse',
+        fontFamily: '"Fredoka", sans-serif',
+    });
+
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    ['#', 'Name', 'Score', 'Wave'].forEach(text => {
+        const th = document.createElement('th');
+        th.textContent = text;
+        Object.assign(th.style, {
+            color: '#ffeaa0',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            padding: '8px 12px',
+            borderBottom: '2px solid rgba(255,255,255,0.2)',
+            textAlign: text === 'Name' ? 'left' : 'center',
+        });
+        headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    scores.forEach((entry, i) => {
+        const row = document.createElement('tr');
+        Object.assign(row.style, {
+            background: i % 2 === 0 ? 'rgba(0,0,0,0.15)' : 'transparent',
+        });
+
+        const rankColors = ['#ffd700', '#c0c0c0', '#cd7f32'];
+        const cells = [
+            { text: i + 1, align: 'center', color: rankColors[i] || '#e8d5a3' },
+            { text: entry.name, align: 'left', color: '#fff' },
+            { text: entry.score.toLocaleString(), align: 'center', color: '#fff' },
+            { text: entry.wave ?? '-', align: 'center', color: '#e8d5a3' },
+        ];
+
+        cells.forEach(cell => {
+            const td = document.createElement('td');
+            td.textContent = cell.text;
+            Object.assign(td.style, {
+                padding: '8px 12px',
+                fontSize: '14px',
+                color: cell.color,
+                textAlign: cell.align,
+            });
+            row.appendChild(td);
+        });
+
+        tbody.appendChild(row);
+    });
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
+    return wrapper;
+}
 
 export function initUI(container) {
     let score = 0;
@@ -266,6 +348,142 @@ export function initUI(container) {
         `;
     };
     mainMenu.appendChild(settingsButton);
+
+    // Leaderboard button
+    const leaderboardButton = document.createElement('button');
+    leaderboardButton.innerHTML = 'LEADERBOARD';
+    Object.assign(leaderboardButton.style, {
+        fontSize: '20px',
+        padding: '12px 40px',
+        background: 'linear-gradient(180deg, #f0c85a 0%, #d4a832 30%, #b8901a 70%, #9a7810 100%)',
+        color: 'white',
+        border: '4px solid #7a5c0a',
+        borderRadius: '50px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        boxShadow: `
+            0 5px 0px #5a4208,
+            0 7px 15px rgba(0,0,0,0.4),
+            inset 0 2px 0 rgba(255,255,255,0.3),
+            inset 0 -2px 5px rgba(0,0,0,0.2)
+        `,
+        transition: 'all 0.15s ease',
+        fontFamily: '"Fredoka", "Arial Black", sans-serif',
+        letterSpacing: '2px',
+        textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+        marginTop: '15px',
+    });
+    leaderboardButton.onmouseover = () => {
+        leaderboardButton.style.transform = 'translateY(-3px) scale(1.02)';
+        leaderboardButton.style.boxShadow = `
+            0 8px 0px #5a4208,
+            0 10px 20px rgba(0,0,0,0.4),
+            inset 0 2px 0 rgba(255,255,255,0.3),
+            inset 0 -2px 5px rgba(0,0,0,0.2),
+            0 0 25px rgba(240, 200, 90, 0.4)
+        `;
+        leaderboardButton.style.background = 'linear-gradient(180deg, #f8d872 0%, #e0b840 30%, #c89e22 70%, #aa8618 100%)';
+    };
+    leaderboardButton.onmouseout = () => {
+        leaderboardButton.style.transform = 'translateY(0) scale(1)';
+        leaderboardButton.style.boxShadow = `
+            0 5px 0px #5a4208,
+            0 7px 15px rgba(0,0,0,0.4),
+            inset 0 2px 0 rgba(255,255,255,0.3),
+            inset 0 -2px 5px rgba(0,0,0,0.2)
+        `;
+        leaderboardButton.style.background = 'linear-gradient(180deg, #f0c85a 0%, #d4a832 30%, #b8901a 70%, #9a7810 100%)';
+    };
+    leaderboardButton.onmousedown = () => {
+        leaderboardButton.style.transform = 'translateY(2px) scale(0.98)';
+        leaderboardButton.style.boxShadow = `
+            0 2px 0px #5a4208,
+            0 4px 10px rgba(0,0,0,0.3),
+            inset 0 2px 0 rgba(255,255,255,0.3),
+            inset 0 -2px 5px rgba(0,0,0,0.2)
+        `;
+    };
+    mainMenu.appendChild(leaderboardButton);
+
+    // Leaderboard overlay screen
+    const leaderboardScreen = document.createElement('div');
+    Object.assign(leaderboardScreen.style, {
+        position: 'absolute',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        background: `
+            radial-gradient(ellipse at 50% 30%, rgba(120, 100, 50, 0.3) 0%, transparent 60%),
+            linear-gradient(180deg, #5a4a2f 0%, #3d3420 30%, #2d2518 60%, #1a1810 100%)
+        `,
+        display: 'none',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: '1000',
+    });
+
+    const leaderboardPanel = document.createElement('div');
+    Object.assign(leaderboardPanel.style, {
+        background: 'linear-gradient(180deg, #c4943a 0%, #8B6914 50%, #6B4F0E 100%)',
+        padding: '35px 50px',
+        borderRadius: '20px',
+        border: '5px solid #5D4E37',
+        boxShadow: '0 8px 0px #3d2e1e, 0 15px 40px rgba(0,0,0,0.6)',
+        textAlign: 'center',
+        maxWidth: '550px',
+        width: '90%',
+        maxHeight: '80vh',
+        overflowY: 'auto',
+    });
+
+    const leaderboardTitle = document.createElement('div');
+    leaderboardTitle.textContent = 'LEADERBOARD';
+    Object.assign(leaderboardTitle.style, {
+        fontSize: '38px',
+        color: '#ffeaa0',
+        fontWeight: 'bold',
+        marginBottom: '20px',
+        textShadow: '0 3px 0px #8B4513, 0 5px 15px rgba(0,0,0,0.4)',
+        fontFamily: '"Bangers", "Arial Black", sans-serif',
+        letterSpacing: '2px',
+    });
+    leaderboardPanel.appendChild(leaderboardTitle);
+
+    const leaderboardContent = document.createElement('div');
+    leaderboardPanel.appendChild(leaderboardContent);
+
+    const leaderboardBackButton = document.createElement('button');
+    leaderboardBackButton.innerHTML = '◀ Back';
+    Object.assign(leaderboardBackButton.style, {
+        fontSize: '16px',
+        padding: '12px 30px',
+        background: 'linear-gradient(180deg, #66d96a 0%, #4CAF50 50%, #388E3C 100%)',
+        color: 'white',
+        border: '3px solid #2E7D32',
+        borderRadius: '30px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        boxShadow: '0 4px 0px #1B5E20, 0 6px 15px rgba(0,0,0,0.3)',
+        fontFamily: '"Fredoka", sans-serif',
+        transition: 'all 0.15s ease',
+        letterSpacing: '2px',
+        textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+        marginTop: '20px',
+    });
+    leaderboardBackButton.onmouseover = () => {
+        leaderboardBackButton.style.transform = 'translateY(-2px)';
+        leaderboardBackButton.style.boxShadow = '0 6px 0px #1B5E20, 0 8px 20px rgba(0,0,0,0.4)';
+    };
+    leaderboardBackButton.onmouseout = () => {
+        leaderboardBackButton.style.transform = 'translateY(0)';
+        leaderboardBackButton.style.boxShadow = '0 4px 0px #1B5E20, 0 6px 15px rgba(0,0,0,0.3)';
+    };
+    leaderboardPanel.appendChild(leaderboardBackButton);
+
+    leaderboardScreen.appendChild(leaderboardPanel);
+    container.appendChild(leaderboardScreen);
 
     // Instructions panel
     const instructionsPanel = document.createElement('div');
@@ -1254,6 +1472,88 @@ export function initUI(container) {
     });
     gameOverPanel.appendChild(finalScoreDiv);
 
+    // Score submission area
+    const submitArea = document.createElement('div');
+    Object.assign(submitArea.style, {
+        marginBottom: '20px',
+    });
+
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.placeholder = 'Enter your name';
+    nameInput.maxLength = 20;
+    Object.assign(nameInput.style, {
+        fontSize: '18px',
+        padding: '12px 20px',
+        borderRadius: '10px',
+        border: '3px solid #5D4E37',
+        background: 'rgba(0,0,0,0.3)',
+        color: '#fff',
+        fontFamily: '"Fredoka", sans-serif',
+        textAlign: 'center',
+        width: '250px',
+        outline: 'none',
+        marginBottom: '12px',
+        display: 'block',
+        marginLeft: 'auto',
+        marginRight: 'auto',
+    });
+
+    const submitScoreButton = document.createElement('button');
+    submitScoreButton.textContent = 'SUBMIT SCORE';
+    Object.assign(submitScoreButton.style, {
+        fontSize: '18px',
+        padding: '12px 35px',
+        background: 'linear-gradient(180deg, #f0c85a 0%, #d4a832 50%, #b8901a 100%)',
+        color: 'white',
+        border: '3px solid #7a5c0a',
+        borderRadius: '30px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        boxShadow: '0 4px 0px #5a4208, 0 6px 15px rgba(0,0,0,0.3)',
+        fontFamily: '"Fredoka", sans-serif',
+        transition: 'all 0.15s ease',
+        marginBottom: '10px',
+    });
+    submitScoreButton.onmouseover = () => {
+        if (!submitScoreButton.disabled) {
+            submitScoreButton.style.transform = 'translateY(-2px)';
+            submitScoreButton.style.boxShadow = '0 6px 0px #5a4208, 0 8px 20px rgba(0,0,0,0.4)';
+        }
+    };
+    submitScoreButton.onmouseout = () => {
+        submitScoreButton.style.transform = 'translateY(0)';
+        submitScoreButton.style.boxShadow = '0 4px 0px #5a4208, 0 6px 15px rgba(0,0,0,0.3)';
+    };
+
+    const gameOverLeaderboard = document.createElement('div');
+
+    submitScoreButton.addEventListener('click', async () => {
+        const name = nameInput.value.trim();
+        if (!name) {
+            nameInput.style.border = '3px solid #ff6b6b';
+            return;
+        }
+        submitScoreButton.disabled = true;
+        submitScoreButton.textContent = 'SUBMITTING...';
+        submitScoreButton.style.opacity = '0.6';
+        submitScoreButton.style.cursor = 'default';
+
+        await submitScore(name, score, currentWaveNum);
+
+        submitScoreButton.textContent = 'SUBMITTED!';
+        nameInput.disabled = true;
+
+        const { data } = await fetchLeaderboard();
+        gameOverLeaderboard.innerHTML = '';
+        gameOverLeaderboard.appendChild(createLeaderboardTable(data));
+    });
+
+    submitArea.appendChild(nameInput);
+    submitArea.appendChild(submitScoreButton);
+    gameOverPanel.appendChild(submitArea);
+    gameOverPanel.appendChild(gameOverLeaderboard);
+
     const playAgainButton = document.createElement('button');
     playAgainButton.textContent = 'PLAY AGAIN';
     Object.assign(playAgainButton.style, {
@@ -1268,6 +1568,7 @@ export function initUI(container) {
         boxShadow: '0 5px 0px #1B5E20, 0 8px 20px rgba(0,0,0,0.4)',
         fontFamily: '"Fredoka", sans-serif',
         transition: 'all 0.15s ease',
+        marginTop: '15px',
     });
     playAgainButton.onmouseover = () => {
         playAgainButton.style.transform = 'translateY(-2px)';
@@ -1462,6 +1763,16 @@ export function initUI(container) {
         crosshair.style.display = 'none';
         gameOverScreen.style.display = 'flex';
         finalScoreDiv.textContent = `Final Score: ${score}${score >= highScore ? ' NEW HIGH SCORE!' : ''}`;
+
+        // Reset score submission form
+        nameInput.value = '';
+        nameInput.disabled = false;
+        nameInput.style.border = '3px solid #5D4E37';
+        submitScoreButton.disabled = false;
+        submitScoreButton.textContent = 'SUBMIT SCORE';
+        submitScoreButton.style.opacity = '1';
+        submitScoreButton.style.cursor = 'pointer';
+        gameOverLeaderboard.innerHTML = '';
     }
 
     function pauseGame() {
@@ -1497,6 +1808,21 @@ export function initUI(container) {
     // Weapon menu back button
     weaponBackButton.addEventListener('click', () => {
         weaponMenu.style.display = 'none';
+        mainMenu.style.display = 'flex';
+    });
+
+    // Leaderboard event listeners
+    leaderboardButton.addEventListener('click', async () => {
+        mainMenu.style.display = 'none';
+        leaderboardScreen.style.display = 'flex';
+        leaderboardContent.innerHTML = '<div style="color: #e8d5a3; font-family: Fredoka, sans-serif; padding: 20px;">Loading...</div>';
+        const { data } = await fetchLeaderboard();
+        leaderboardContent.innerHTML = '';
+        leaderboardContent.appendChild(createLeaderboardTable(data));
+    });
+
+    leaderboardBackButton.addEventListener('click', () => {
+        leaderboardScreen.style.display = 'none';
         mainMenu.style.display = 'flex';
     });
 
