@@ -1904,13 +1904,9 @@ export function initUI(container) {
     });
 
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && gameStarted) {
-            if (gamePaused) {
-                resumeGame();
-                if (window.onGameResume) window.onGameResume();
-            } else {
-                pauseGame();
-            }
+        if (e.key === 'Escape' && gameStarted && gamePaused) {
+            resumeGame();
+            if (window.onGameResume) window.onGameResume();
         }
     });
 
@@ -2070,6 +2066,7 @@ export function initUI(container) {
         showSpawnWarning,
         isGameStarted: () => gameStarted,
         isGamePaused: () => gamePaused,
+        pauseGame,
         showWaveStart,
         updateBalloonsRemaining,
         updateComboTimer,

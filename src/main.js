@@ -38,7 +38,14 @@ const { scene, camera, renderer, cleanup: sceneCleanup } = initScene(container);
 audioManager.init(camera);
 
 const ui = initUI(container);
-const { addScore, loseLife, addLives, showSpawnWarning, isGameStarted, isGamePaused, showWaveStart, updateBalloonsRemaining, updateComboTimer, showGraffitiText } = ui;
+const { addScore, loseLife, addLives, showSpawnWarning, isGameStarted, isGamePaused, pauseGame, showWaveStart, updateBalloonsRemaining, updateComboTimer, showGraffitiText } = ui;
+
+// Auto-pause when pointer lock is released (browser Escape)
+window.onPointerLockLost = () => {
+    if (isGameStarted() && !isGamePaused()) {
+        pauseGame();
+    }
+};
 const { checkWallCollision } = initWalls(scene);
 const { updateMovement, cleanup: controlsCleanup } = initControls(
     camera,

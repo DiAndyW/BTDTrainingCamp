@@ -95,6 +95,15 @@ export function initControls(camera, renderer, onShoot) {
     // Also listen on document in case mouse leaves canvas while held
     document.addEventListener('mouseup', onMouseUp);
 
+    // Auto-pause when pointer lock is lost (e.g. user presses Escape)
+    function onPointerLockChange() {
+        if (!document.pointerLockElement && window.onPointerLockLost) {
+            isMouseDown = false;
+            window.onPointerLockLost();
+        }
+    }
+    document.addEventListener('pointerlockchange', onPointerLockChange);
+
     function updateMovement(dt, moveSpeed, checkWallCollision) {
         if (controls.isLocked) {
             // Auto-fire when mouse is held down
@@ -137,12 +146,14 @@ export function initControls(camera, renderer, onShoot) {
         controls,
         movement,
         updateMovement,
+        lock: () => controls.lock(),
         cleanup: () => {
             document.removeEventListener('keydown', onKeyDown);
             document.removeEventListener('keyup', onKeyUp);
             renderer.domElement.removeEventListener('mousedown', onMouseDown);
             renderer.domElement.removeEventListener('mouseup', onMouseUp);
             document.removeEventListener('mouseup', onMouseUp);
+            document.removeEventListener('pointerlockchange', onPointerLockChange);
         }
     };
 }
