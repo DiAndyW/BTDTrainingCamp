@@ -14,6 +14,7 @@ export function initControls(camera, renderer, onShoot) {
 
     let lastShotTime = 0;
     let isMouseDown = false;
+    let isShootKeyDown = false;
 
     function onKeyDown(event) {
         switch (event.code) {
@@ -32,6 +33,12 @@ export function initControls(camera, renderer, onShoot) {
             case 'KeyD':
             case 'ArrowRight':
                 movement.right = true;
+                break;
+            case 'Space':
+                if (controls.isLocked && !isShootKeyDown) {
+                    isShootKeyDown = true;
+                    tryShoot();
+                }
                 break;
             default:
                 break;
@@ -55,6 +62,9 @@ export function initControls(camera, renderer, onShoot) {
             case 'KeyD':
             case 'ArrowRight':
                 movement.right = false;
+                break;
+            case 'Space':
+                isShootKeyDown = false;
                 break;
             default:
                 break;
@@ -106,8 +116,8 @@ export function initControls(camera, renderer, onShoot) {
 
     function updateMovement(dt, moveSpeed, checkWallCollision) {
         if (controls.isLocked) {
-            // Auto-fire when mouse is held down
-            if (isMouseDown) {
+            // Auto-fire when mouse or Space is held down
+            if (isMouseDown || isShootKeyDown) {
                 tryShoot();
             }
 

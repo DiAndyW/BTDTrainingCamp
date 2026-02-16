@@ -509,7 +509,7 @@ export function initUI(container) {
 
     const controlsInfo = document.createElement('div');
     controlsInfo.innerHTML = `
-        <span style="opacity: 0.9;">Hold mouse to shoot</span>
+        <span style="opacity: 0.9;">Hold mouse or SPACE to shoot</span>
         <span style="margin: 0 10px; opacity: 0.5;">•</span>
         <span style="opacity: 0.9;">Pop all the balloons!</span>
     `;
@@ -1146,7 +1146,8 @@ export function initUI(container) {
         top: '0',
         left: '0',
         width: '100%',
-        padding: '15px',
+        height: '0',
+        overflow: 'visible',
         pointerEvents: 'none',
         userSelect: 'none',
         display: 'none',
@@ -1261,7 +1262,7 @@ export function initUI(container) {
 
     // Hint text
     const hintDiv = document.createElement('div');
-    hintDiv.textContent = '⏸️ Press ESC to pause';
+    hintDiv.textContent = 'ESC to pause  | Click or SPACE to shoot';
     Object.assign(hintDiv.style, {
         position: 'absolute',
         bottom: '25px',
